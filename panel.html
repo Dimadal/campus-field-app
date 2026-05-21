@@ -1496,7 +1496,7 @@ async function createNewCustomer() {
 
   try {
     // Get max customer number and generate next one
-    const existing = await api('customers?select=customer_number&order=customer_number.desc&limit=100');
+    const existing = await api('customers?select=customer_number&order=customer_number.asc&limit=1000');
     
     // Find max numeric value starting with *
     let maxNum = 0;
@@ -1679,7 +1679,7 @@ async function saveCustomer() {
     } else {
       let finalNumber = number;
       if (!finalNumber) {
-        const existing = await api('customers?select=customer_number&order=customer_number.desc&limit=100');
+        const existing = await api('customers?select=customer_number&order=customer_number.asc&limit=1000');
         let maxNum = 0;
         existing.forEach(c => {
           if (c.customer_number && c.customer_number.startsWith('*')) {
