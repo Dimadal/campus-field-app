@@ -784,11 +784,7 @@ async function sendReportWhatsApp(){
   let matsText='';
   try{
     const mats=await apiDB('materials?select=*&report_id=eq.'+r.id,'GET',null,currentUser.access_token);
-    if(mats.length)matsText='
-
-📦 *חומרים:*
-'+mats.map(m=>`• ${m.name}: ${m.quantity} ${m.unit}`).join('
-');
+    if(mats.length)matsText='\n\n📦 *חומרים:*\n'+mats.map(m=>`• ${m.name}: ${m.quantity} ${m.unit}`).join('\n');
   }catch(e){}
 
   const text=`📋 *דוח עבודה*
@@ -918,7 +914,7 @@ async function naCreateCustomer() {
   const name = document.getElementById('na-nc-name').value.trim();
   if (!name) { toast('הזן שם לקוח'); return; }
   try {
-    const existing = await apiDB('customers?select=customer_number&order=customer_number.desc&limit=100','GET',null,currentUser.access_token);
+    const existing = await apiDB('customers?select=customer_number&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
     let maxNum = 0;
     existing.forEach(c => {
       const n = c.customer_number;
