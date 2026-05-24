@@ -68,7 +68,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .login-form { background: var(--white); flex: 1; border-radius: 16px 16px 0 0; padding: 32px 24px; }
 .form-group { margin-bottom: 18px; }
 .form-label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-500); margin-bottom: 7px; }
-.form-input { width: 100%; padding: 13px 16px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 15px; font-family: var(--sans); color: var(--text); background: var(--white); outline: none; transition: border-color 0.2s; }
+.form-input { width: 100%; padding: 13px 16px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 16px; font-family: var(--sans); color: var(--text); background: var(--white); outline: none; transition: border-color 0.2s; }
 .form-input:focus { border-color: var(--blue); }
 .error-box { background: #fee2e2; border: 1px solid #fca5a5; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--red); margin-bottom: 16px; display: none; }
 .error-box.show { display: block; }
@@ -136,10 +136,10 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .gps-strip.err { background: #fee2e2; color: #991b1b; }
 
 /* REPORT */
-.form-textarea { width: 100%; padding: 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 90px; outline: none; transition: border-color 0.2s; }
+.form-textarea { width: 100%; padding: 12px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 16px; font-family: var(--sans); resize: vertical; min-height: 90px; outline: none; transition: border-color 0.2s; }
 .form-textarea:focus { border-color: var(--blue); }
 .mat-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
-.mat-row input { padding: 9px 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 13px; font-family: var(--sans); outline: none; }
+.mat-row input { padding: 9px 10px; border: 1.5px solid var(--gray-300); border-radius: var(--radius); font-size: 16px; font-family: var(--sans); outline: none; }
 .mat-row input:focus { border-color: var(--blue); }
 .mat-name { flex: 1; }
 .mat-qty { width: 62px; }
@@ -175,7 +175,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .empty-sub { font-size: 13px; color: var(--gray-500); }
 
 /* TOAST */
-.toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: var(--navy); color: var(--white); padding: 10px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500; z-index: 9999; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; border-left: 3px solid var(--blue); }
+.toast { direction: ltr; position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: var(--navy); color: var(--white); padding: 10px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500; z-index: 9999; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; border-left: 3px solid var(--blue); }
 .toast.show { opacity: 1; }
 
 .warn-strip { background: #fef3c7; border: 1px solid #fcd34d; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #92400e; text-align: center; }
@@ -203,6 +203,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.2</div>
     </div>
   </div>
 </div>
@@ -371,6 +372,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         </div>
         <input type="hidden" id="na-client-name">
         <input type="hidden" id="na-client-number">
+        <input type="hidden" id="na-client-id">
         <div id="na-selected-customer" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-top:10px"></div>
 
         <!-- Создать нового -->
@@ -421,6 +423,82 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
   </div>
 </div>
 
+<!-- BRIGADE SCREEN -->
+<div class="screen" id="screen-brigade">
+  <div class="header">
+    <div><div class="header-title">Бригада</div></div>
+  </div>
+  <div class="content pb-nav" id="brigade-content">
+    <div class="loading-wrap"><div class="spinner"></div>Загрузка...</div>
+  </div>
+</div>
+
+<!-- CREATE ASSIGNMENT FOR WORKER -->
+<div class="screen" id="screen-create-for-worker">
+  <div class="header">
+    <div><div class="header-title">Новое задание</div></div>
+    <button class="back-btn" onclick="showScreen('brigade');loadBrigade()">← Назад</button>
+  </div>
+  <div class="content pb-nav">
+    <div class="card">
+      <div class="card-header"><div class="card-label">1. Техник</div></div>
+      <div class="card-body">
+        <select id="cfw-worker" class="form-input"><option value="">— Выберите техника —</option></select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-label">2. Клиент</div></div>
+      <div class="card-body">
+        <div style="position:relative">
+          <input class="form-input" type="text" id="cfw-client-search" placeholder="Поиск по номеру или названию..." oninput="cfwSearchCustomers()" autocomplete="off">
+          <div id="cfw-client-dropdown" style="display:none;position:absolute;z-index:999;background:var(--white);border:1.5px solid var(--gray-300);border-radius:var(--radius);max-height:220px;overflow-y:auto;width:100%;box-shadow:0 4px 16px rgba(0,0,0,0.12);top:calc(100% + 4px);left:0"></div>
+        </div>
+        <input type="hidden" id="cfw-client-name">
+        <input type="hidden" id="cfw-client-number">
+        <input type="hidden" id="cfw-client-id">
+        <div id="cfw-selected-customer" style="display:none;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-top:10px"></div>
+        <div style="margin-top:12px">
+          <button type="button" id="cfw-toggle-new-btn" onclick="cfwToggleNewCustomer()" style="width:100%;padding:9px;background:none;border:1.5px dashed var(--gray-300);border-radius:var(--radius);font-size:13px;color:var(--gray-500);cursor:pointer;font-family:var(--sans)">+ Создать нового клиента</button>
+        </div>
+        <div id="cfw-new-customer-form" style="display:none;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;margin-top:10px">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Название клиента</label>
+            <input class="form-input" type="text" id="cfw-nc-name" placeholder="ООО Ромашка">
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="cfwCreateCustomer()" style="margin-top:12px">✅ Создать клиента</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-label">3. Объект / место работ</div></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Адрес</label>
+          <input class="form-input" type="text" id="cfw-address" placeholder="ул. Герцль 14, Тель-Авив">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Место проведения работ</label>
+          <input class="form-input" type="text" id="cfw-workplace" placeholder="Серверная, 3 этаж">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-label">4. Детали задания</div></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Дата</label>
+          <input class="form-input" type="date" id="cfw-date">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Описание работ</label>
+          <textarea class="form-textarea" id="cfw-desc" placeholder="Что нужно сделать..."></textarea>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="cfwSubmit()" style="margin-bottom:90px">Создать задание</button>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav" id="bottom-nav">
   <div class="nav-tabs">
@@ -432,6 +510,9 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
     </button>
     <button class="nav-tab" id="tab-newtask" onclick="switchTab('newtask')">
       <span class="ti">➕</span><span>Создать</span>
+    </button>
+    <button class="nav-tab" id="tab-brigade" onclick="switchTab('brigade')" style="display:none">
+      <span class="ti">👷</span><span>Бригада</span>
     </button>
   </div>
 </div>
@@ -486,6 +567,10 @@ async function login(){
     document.getElementById('menu-date').textContent=new Date().toLocaleDateString('ru',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     document.getElementById('header-name').textContent=displayName;
     document.getElementById('mytasks-name').textContent=displayName;
+    // Show brigade tab for supervisors
+    if(currentWorker.is_supervisor){
+      document.getElementById('tab-brigade').style.display='flex';
+    }
     showScreen('menu');
   }catch(e){err.textContent='Неверный номер или пароль';err.classList.add('show');}
   btn.disabled=false;btn.textContent='Войти в систему';
@@ -525,7 +610,168 @@ function switchTab(tab){
   if(tab==='assignments'){showScreen('home');loadAssignments();}
   else if(tab==='mytasks'){showScreen('mytasks');loadMyTasks();}
   else if(tab==='newtask'){showScreen('newtask');loadObjectsForSelect();document.getElementById('na-date').value=new Date().toISOString().split('T')[0];}
+  else if(tab==='brigade'){showScreen('brigade');loadBrigade();}
 }
+
+// ==================== BRIGADE ====================
+let brigadeWorkers = [];
+let brigadeAllCustomers = [];
+
+async function loadBrigade() {
+  const el = document.getElementById('brigade-content');
+  el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div>Загрузка...</div>';
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    brigadeWorkers = await apiDB('workers?select=*&order=full_name.asc', 'GET', null, currentUser.access_token);
+    const assignments = await apiDB('assignments?select=*,objects(name,address)&work_date=eq.'+today+'&order=created_at.desc','GET',null,currentUser.access_token);
+    const byWorker = {};
+    assignments.forEach(a => { if(!byWorker[a.worker_id])byWorker[a.worker_id]=[]; byWorker[a.worker_id].push(a); });
+    let html = `<button class="btn btn-primary" style="margin-bottom:16px" onclick="openCreateForWorker()">➕ Создать задание для техника</button>`;
+    html += `<div class="section-label">Сегодня, ${new Date().toLocaleDateString('ru',{day:'numeric',month:'long'})}</div>`;
+    brigadeWorkers.forEach(w => {
+      const wA = byWorker[w.id]||[];
+      html += `<div class="card" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${wA.length?'border-bottom:1px solid var(--gray-200)':''}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">${(w.full_name||'?')[0]}</div>
+            <div><div style="font-weight:600;font-size:14px">${w.full_name||'—'}</div><div style="font-size:11px;color:var(--gray-500)">${w.role||''}</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:${wA.length?'var(--green)':'var(--gray-300)'};font-weight:600">${wA.length?wA.length+' задан.':'Свободен'}</span>
+            <button class="btn btn-ghost btn-sm" onclick="openCreateForWorker('${w.id}')">+ Задание</button>
+          </div>
+        </div>
+        ${wA.map(a=>`<div style="padding:10px 14px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between">
+          <div><div style="font-size:13px;font-weight:500">${a.objects?.name||'—'}</div><div style="font-size:11px;color:var(--gray-500)">${a.objects?.address||''}</div></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${a.bonus?`<span style="font-weight:700;color:#0db87e;font-size:13px">₪${Number(a.bonus).toLocaleString('ru')}</span>`:''}
+            <span class="badge badge-${a.status==='done'?'green':a.status==='active'?'blue':'gray'}">${a.status==='done'?'Готово':a.status==='active'?'В работе':'Ожидает'}</span>
+            <button class="btn btn-ghost btn-sm" onclick="brigadeSetBonus('${a.id}',${a.bonus||0})" style="padding:3px 8px">🎁</button>
+            <button class="btn btn-ghost btn-sm" onclick="brigadeDeleteAssignment('${a.id}')" style="color:var(--red);padding:3px 8px">✕</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch(e) { el.innerHTML = `<div class="empty-wrap"><div class="empty-title">Ошибка</div><div class="empty-sub">${e.message}</div></div>`; }
+}
+
+async function brigadeDeleteAssignment(id) {
+  if(!confirm('Удалить задание? Оно будет перемещено в архив.')) return;
+  try {
+    const items = await apiDB('assignments?id=eq.'+id+'&select=*,workers(full_name),objects(name)','GET',null,currentUser.access_token);
+    const a = items[0];
+    if(a) {
+      await apiDB('archive','POST',{
+        type:'assignment',
+        data:{...a, _display:{worker:a.workers?.full_name||'—', object:a.objects?.name||'—'}},
+        deleted_by: currentWorker.full_name||'Прораб'
+      },currentUser.access_token);
+    }
+    await apiDB('assignments?id=eq.'+id,'DELETE',null,currentUser.access_token);
+    toast('✓ Задание перемещено в архив');
+    loadBrigade();
+  } catch(e) { toast('Ошибка: '+e.message); }
+}
+
+async function brigadeSetBonus(id, current) {
+  const val = prompt('Введите бонус в ₪ (0 — убрать бонус):', current||'');
+  if(val === null) return;
+  const bonus = parseFloat(val);
+  try {
+    await apiDB('assignments?id=eq.'+id,'PATCH',{bonus: (!isNaN(bonus)&&bonus>0)?bonus:null},currentUser.access_token);
+    toast(bonus>0?`✓ Бонус установлен: ₪${bonus}`:'✓ Бонус убран');
+    loadBrigade();
+  } catch(e) { toast('Ошибка: '+e.message); }
+}
+
+function openCreateForWorker(workerId) {
+  const sel = document.getElementById('cfw-worker');
+  sel.innerHTML = '<option value="">— Выберите техника —</option>'+brigadeWorkers.map(w=>`<option value="${w.id}"${w.id===workerId?' selected':''}>${w.full_name||'—'}${w.role?' ('+w.role+')':''}</option>`).join('');
+  ['cfw-client-search','cfw-client-name','cfw-client-number','cfw-address','cfw-workplace','cfw-desc'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('cfw-selected-customer').style.display='none';
+  document.getElementById('cfw-new-customer-form').style.display='none';
+  document.getElementById('cfw-toggle-new-btn').style.display='block';
+  document.getElementById('cfw-date').value=new Date().toISOString().split('T')[0];
+  apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token).then(d=>{brigadeAllCustomers=d;});
+  showScreen('create-for-worker');
+}
+
+function cfwSearchCustomers() {
+  const q=document.getElementById('cfw-client-search').value.trim().toLowerCase();
+  const dd=document.getElementById('cfw-client-dropdown');
+  if(!q){dd.style.display='none';return;}
+  const matches=brigadeAllCustomers.filter(c=>(c.customer_number||'').toLowerCase().includes(q)||(c.customer_name||'').toLowerCase().includes(q)).slice(0,20);
+  if(!matches.length){dd.style.display='none';return;}
+  dd.style.display='block';
+  dd.innerHTML=matches.map(c=>`<div onclick="cfwSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')
+" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--gray-200)" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+    <span style="font-family:var(--mono);color:var(--gray-500);font-size:11px">${c.customer_number}</span>
+    <span style="margin-left:8px;font-weight:500">${c.customer_name}</span>
+  </div>`).join('');
+}
+
+function cfwSelectCustomer(number,name,id){
+  document.getElementById('cfw-client-name').value=name;
+  document.getElementById('cfw-client-number').value=number;
+  document.getElementById('cfw-client-id').value=id||'';
+  document.getElementById('cfw-client-search').value=number+' — '+name;
+  document.getElementById('cfw-client-dropdown').style.display='none';
+  const sel=document.getElementById('cfw-selected-customer');
+  sel.style.display='block';
+  sel.innerHTML='✅ Выбран: <strong>'+name+'</strong> · <span style="font-family:var(--mono);font-size:12px">'+number+'</span>';
+  document.getElementById('cfw-new-customer-form').style.display='none';
+  document.getElementById('cfw-toggle-new-btn').style.display='block';
+}
+
+function cfwToggleNewCustomer(){
+  const form=document.getElementById('cfw-new-customer-form');
+  const btn=document.getElementById('cfw-toggle-new-btn');
+  if(form.style.display==='none'){form.style.display='block';btn.style.display='none';['cfw-client-name','cfw-client-number','cfw-client-search'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('cfw-selected-customer').style.display='none';}
+  else{form.style.display='none';btn.style.display='block';}
+}
+
+async function cfwCreateCustomer(){
+  const name=document.getElementById('cfw-nc-name').value.trim();
+  if(!name){toast('Введите название клиента');return;}
+  try{
+    const existing=await apiDB('customers?select=customer_number&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
+    let maxNum=0;existing.forEach(c=>{const n=c.customer_number;if(n&&n.startsWith('*')){const num=parseInt(n.slice(1));if(!isNaN(num)&&num>maxNum)maxNum=num;}});
+    const number='*'+String(maxNum+1).padStart(5,'0');
+    await apiDB('customers','POST',{customer_number:number,customer_name:name},currentUser.access_token);
+    brigadeAllCustomers=await apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
+    cfwSelectCustomer(number,name);document.getElementById('cfw-nc-name').value='';
+    toast('✅ Клиент создан: '+number+' — '+name);
+  }catch(e){toast('Ошибка: '+e.message);}
+}
+
+async function cfwSubmit(){
+  const workerId=document.getElementById('cfw-worker').value;
+  const clientName=document.getElementById('cfw-client-name').value.trim();
+  const clientNumber=document.getElementById('cfw-client-number').value.trim();
+  const date=document.getElementById('cfw-date').value;
+  const address=document.getElementById('cfw-address').value.trim();
+  const workplace=document.getElementById('cfw-workplace').value.trim();
+  const desc=document.getElementById('cfw-desc').value.trim();
+  if(!workerId){toast('Выберите техника');return;}
+  if(!clientName){toast('Выберите или создайте клиента');return;}
+  if(!date){toast('Выберите дату');return;}
+  try{
+    const result=await apiDB('objects','POST',{
+      name:clientName+(workplace?' — '+workplace:''),
+      address:address||null,
+      work_place:workplace||null,
+      client_name:clientName||null,
+      company:clientName||null,
+      company_phone:clientNumber||null,
+      status:'active'
+    },currentUser.access_token);
+    const newObj=Array.isArray(result)?result[0]:result;
+    await apiDB('assignments','POST',{worker_id:workerId,object_id:newObj?.id,work_date:date,status:'pending',description:desc||null},currentUser.access_token);
+    toast('✓ Задание создано');showScreen('brigade');loadBrigade();
+  }catch(e){toast('Ошибка: '+e.message);}
+}
+// ==================== END BRIGADE ====================
 
 async function loadAssignments(){
   const el=document.getElementById('home-content');
@@ -557,6 +803,7 @@ function assignmentCard(a){
         <span class="assign-date">${fmtDate(a.work_date)}</span>
       </div>
     </div>
+    ${a.bonus?'<div style="width:28px;height:28px;border-radius:50%;background:#0db87e;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin-left:8px;flex-shrink:0">₪</div>':''}
     <div style="font-size:22px;color:var(--gray-300);margin-left:8px">›</div>
   </div>`;
 }
@@ -595,6 +842,8 @@ function renderAssignment(){
   if(obj.work_type)rows+=`<div class="detail-row"><div class="detail-icon">📂</div><div class="detail-label">Тип</div><div class="detail-value">${obj.work_type==='project'?'📋 Проект':'🔧 Обслуживание'}</div></div>`;
 
   const descCard=a.description?`<div class="card" style="border-left:3px solid var(--blue)"><div class="card-header"><div class="card-label">Задание от менеджера</div></div><div class="card-body" style="font-size:14px;line-height:1.6">${a.description}</div></div>`:'';
+  const bonusCard=a.bonus?`<div class="card" style="border-left:3px solid #0db87e"><div class="card-header"><div class="card-label">🎁 Бонус за работу</div></div><div class="card-body"><div style="font-size:26px;font-weight:700;color:#0db87e">₪${Number(a.bonus).toLocaleString('ru')}</div></div></div>`:'';
+
   let actions='';
   if(!hasArrived){
     actions=`<div class="gps-strip loading" id="gps-status">📡 Определяем GPS...</div><button class="btn btn-green" onclick="checkIn()">✓ Прибыл на объект</button>`;
@@ -609,6 +858,7 @@ function renderAssignment(){
   el.innerHTML=`
     <div class="card"><div class="card-header"><div class="card-label">Работа</div></div><div class="card-body">${rows||'<div style="color:var(--gray-500)">Нет данных</div>'}</div></div>
     ${descCard}
+    ${bonusCard}
     <div class="card"><div class="card-header"><div class="card-label">Время работы</div></div><div class="card-body">
       <div class="time-grid">
         <div class="time-box"><div class="time-lbl">Прибытие</div><div class="time-val ${hasArrived?'set':''}" id="time-arrived">${fmtTime(r?.arrived_at)}</div></div>
@@ -887,9 +1137,10 @@ function naSearchCustomers() {
     </div>`).join('');
 }
 
-function naSelectCustomer(number, name) {
+function naSelectCustomer(number, name, id) {
   document.getElementById('na-client-name').value = name;
   document.getElementById('na-client-number').value = number;
+  document.getElementById('na-client-id').value = id || '';
   document.getElementById('na-client-search').value = number + ' — ' + name;
   document.getElementById('na-client-dropdown').style.display = 'none';
   const sel = document.getElementById('na-selected-customer');
@@ -920,7 +1171,7 @@ async function naCreateCustomer() {
   const name = document.getElementById('na-nc-name').value.trim();
   if (!name) { toast('Введите название клиента'); return; }
   try {
-    const existing = await apiDB('customers?select=customer_number&order=customer_number.desc&limit=100','GET',null,currentUser.access_token);
+    const existing = await apiDB('customers?select=customer_number&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
     let maxNum = 0;
     existing.forEach(c => {
       const n = c.customer_number;
@@ -957,8 +1208,8 @@ async function submitNewAssignment(){
   if (!clientName) { toast('Выберите или создайте клиента'); return; }
   if (!date) { toast('Выберите дату'); return; }
   try {
-    // Create or find object
-    const result = await apiDB('objects','POST',{
+    // Only create new object — never duplicate for existing customers
+    const objResult = await apiDB('objects','POST',{
       name: clientName + (workplace ? ' — ' + workplace : ''),
       address: address || null,
       work_place: workplace || null,
@@ -967,7 +1218,7 @@ async function submitNewAssignment(){
       company_phone: clientNumber || null,
       status: 'active'
     }, currentUser.access_token);
-    const newObj = Array.isArray(result) ? result[0] : result;
+    const newObj = Array.isArray(objResult) ? objResult[0] : objResult;
     await apiDB('assignments','POST',{
       worker_id: currentWorker.id,
       object_id: newObj?.id,
