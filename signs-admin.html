@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Таблички — Администратор</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f6fa;--surface:#ffffff;--surface2:#f0f2f8;
+  --border:#e2e5ef;--accent:#4361ee;--accent2:#0db87e;
+  --warn:#f59e0b;--danger:#ef4444;--text:#1a1d2e;--muted:#6b7280;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+/* Login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;width:100%;max-width:360px;box-shadow:0 4px 16px rgba(0,0,0,0.08)}
+.login-title{font-size:18px;font-weight:600;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+/* Layout */
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sidebar{background:#f0f2f5;border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column}
+.logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.logo-title{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent);letter-spacing:0.05em}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:#4b5563;cursor:pointer;transition:all 0.15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text);background:#e5e7eb}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(67,97,238,0.08)}
+.nbadge{display:inline-block;min-width:18px;height:18px;border-radius:9px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:18px;padding:0 4px;margin-left:4px;font-family:var(--mono)}
+.main{padding:28px;overflow-y:auto}
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.page-title{font-size:20px;font-weight:600}
+.page-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s;font-family:var(--sans)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3a56d4}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.25)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card-title{font-size:14px;font-weight:600;margin-bottom:16px}
+.screen{display:none}.screen.active{display:block}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;font-weight:500}
+.fg input,.fg textarea{width:100%;background:#f8f9fc;border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:border-color 0.15s}
+.fg input:focus,.fg textarea:focus{border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.upload-zone{border:1.5px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:12px}
+.upload-zone:hover{border-color:var(--accent);background:#eef2ff}
+.upload-zone p{font-size:12px;color:var(--muted);margin-top:6px}
+.item-row{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;background:var(--surface)}
+.item-thumb{width:60px;height:38px;background:var(--surface2);border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.item-thumb img{max-width:100%;max-height:100%;object-fit:contain}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:13px;font-weight:600}
+.item-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 16px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;font-weight:500;border-bottom:1px solid var(--border);background:#f8f9fc}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid rgba(0,0,0,0.05)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f5f7ff}
+.badge{display:inline-block;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;font-family:var(--mono)}
+.badge-green{background:#d1fae5;color:#065f46}
+.badge-warn{background:#fef3c7;color:#92400e}
+.order-card{border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--surface)}
+.order-card.is-new{border-left:3px solid var(--accent)}
+.sign-thumb{height:44px;max-width:70px;object-fit:contain;border-radius:4px;border:1px solid var(--border)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+.loading{text-align:center;padding:24px;color:var(--muted);font-size:13px;font-family:var(--mono)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1d2e;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);padding:16px 20px;margin-top:auto}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent2)}.dot.red{background:var(--danger)}
+@media(max-width:768px){.layout{grid-template-columns:1fr}.sidebar{display:none}.main{padding:16px}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <div class="login-title">🪧 Таблички</div>
+    <div class="login-sub">Панель администратора</div>
+    <div class="fg"><label>Пароль</label><input type="password" id="login-pass" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">Войти →</button>
+    <div id="login-err" style="color:var(--danger);font-size:12px;margin-top:10px;display:none">Неверный пароль</div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel" style="display:none">
+<div class="layout">
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-title">◈ ТАБЛИЧКИ</div>
+      <div class="logo-sub">Администратор</div>
+    </div>
+    <div class="nav-item active" onclick="showScreen('orders',this)">📋 Заказы <span class="nbadge" id="orders-badge" style="display:none">0</span></div>
+    <div class="nav-item" onclick="showScreen('templates',this)">🖼 Шаблоны</div>
+    <div class="nav-item" onclick="showScreen('materials',this)">🔩 Материалы</div>
+    <div class="conn-status"><div class="dot" id="conn-dot"></div><span id="conn-text">Подключение...</span></div>
+  </div>
+
+  <div class="main">
+
+    <!-- ORDERS -->
+    <div class="screen active" id="screen-orders">
+      <div class="page-header">
+        <div><div class="page-title">Заказы</div><div class="page-sub">Входящие заказы от клиентов</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="loadOrders()">↻ Обновить</button>
+      </div>
+      <div id="orders-wrap"><div class="loading">Загрузка...</div></div>
+    </div>
+
+    <!-- TEMPLATES -->
+    <div class="screen" id="screen-templates">
+      <div class="page-header">
+        <div><div class="page-title">Шаблоны</div><div class="page-sub">Шаблоны табличек для клиентов</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Добавить шаблон</div>
+        <div class="fg"><label>Название</label><input type="text" id="t-name" placeholder="Офисная А5, Дверная узкая..."></div>
+        <div class="row3">
+          <div class="fg"><label>Ширина (мм)</label><input type="number" id="t-w" placeholder="150" min="10"></div>
+          <div class="fg"><label>Высота (мм)</label><input type="number" id="t-h" placeholder="80" min="5"></div>
+          <div class="fg"><label>Описание</label><input type="text" id="t-desc" placeholder="Прямоугольная..."></div>
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('t-img').click()">
+          <input type="file" id="t-img" accept="image/*" style="display:none" onchange="previewTmplImg(this)">
+          <div style="font-size:20px">📷</div>
+          <p>Нажмите чтобы загрузить фото шаблона (PNG/JPG)</p>
+          <div id="t-img-prev" style="margin-top:8px"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addTemplate()">+ Добавить шаблон</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Шаблоны</div>
+        <div id="templates-list"><div class="loading">Загрузка...</div></div>
+      </div>
+    </div>
+
+    <!-- MATERIALS -->
+    <div class="screen" id="screen-materials">
+      <div class="page-header">
+        <div><div class="page-title">Материалы</div><div class="page-sub">Список материалов для выбора клиентом</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Добавить материал</div>
+        <div class="row2">
+          <div class="fg"><label>Название</label><input type="text" id="m-name" placeholder="Акрил 3мм, Фанера 4мм..."></div>
+          <div class="fg"><label>Описание</label><input type="text" id="m-desc" placeholder="Цвет, толщина..."></div>
+        </div>
+        <button class="btn btn-primary" onclick="addMaterial()">+ Добавить</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Материалы</div>
+        <div id="materials-list"><div class="loading">Загрузка...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PASS='123456';
+const SUPA_URL='https://pvaogqxpbkwxarbgzvpi.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2YW9ncXhwYmt3eGFyYmd6dnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTY4NTYsImV4cCI6MjA5NDczMjg1Nn0.ib17U3NvpLjVSm1GZ5eeXT79hiLfZaAKt2nALLMKHUY';
+const H={'apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+async function api(path,method='GET',body=null){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+path,{method,headers:H,body:body?JSON.stringify(body):null});
+  if(!r.ok)throw new Error(await r.text());
+  return method==='DELETE'?null:r.json();
+}
+function toast(msg,dur=3000){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),dur);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// LOGIN
+function doLogin(){
+  const p=document.getElementById('login-pass').value;
+  if(p===PASS){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('admin-panel').style.display='block';
+    initAdmin();
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('login-pass').value='';
+  }
+}
+
+function showScreen(name,el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  if(el)el.classList.add('active');
+  if(name==='orders')loadOrders();
+  if(name==='templates')loadTemplates();
+  if(name==='materials')loadMaterials();
+}
+
+async function initAdmin(){
+  try{
+    await api('sign_orders?select=id&limit=1');
+    document.getElementById('conn-dot').classList.remove('red');
+    document.getElementById('conn-text').textContent='Supabase подключён';
+  }catch(e){
+    document.getElementById('conn-dot').classList.add('red');
+    document.getElementById('conn-text').textContent='Ошибка подключения';
+  }
+  loadOrders();
+}
+
+// --- ORDERS ---
+async function loadOrders(){
+  const el=document.getElementById('orders-wrap');
+  el.innerHTML='<div class="loading">Загрузка...</div>';
+  try{
+    const orders=await api('sign_orders?order=created_at.desc&limit=200');
+    const newCount=orders.filter(o=>o.is_new).length;
+    const badge=document.getElementById('orders-badge');
+    if(newCount>0){badge.style.display='inline-block';badge.textContent=newCount;}
+    else badge.style.display='none';
+    if(!orders.length){el.innerHTML='<div class="empty">Заказов пока нет</div>';return;}
+    el.innerHTML=orders.map(o=>{
+      const signs=Array.isArray(o.signs)?o.signs:[];
+      const c=document.createElement('canvas');
+      if(signs.length>0){
+        const s=signs[0];
+        drawMiniSign(c,s.w||150,s.h||80,s.text||'',s.fontSize||24,s.font||'Arial');
+      }
+      const thumb=signs.length>0?`<img src="${c.toDataURL()}" class="sign-thumb">`:'';
+      return `<div class="order-card${o.is_new?' is-new':''}">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span style="font-size:14px;font-weight:600">${esc(o.client_name)}</span>
+              ${o.is_new?'<span class="badge badge-warn">Новый</span>':'<span class="badge badge-green">Просмотрен</span>'}
+              <span style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:auto">${new Date(o.created_at).toLocaleString('ru')}</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${o.client_contact?esc(o.client_contact)+' · ':''}<b style="color:var(--text)">${signs.length} ${signs.length===1?'табличка':signs.length<5?'таблички':'табличек'}</b></div>
+            <div style="font-size:12px;color:var(--muted)">${signs.map((s,i)=>`<span style="margin-right:8px">№${i+1}: ${esc((s.text||'').replace(/\n/g,' / ').substring(0,30)||'—')} · ${s.w}×${s.h}мм${s.material?' · '+esc(s.material):''}</span>`).join('')}</div>
+            ${o.note?`<div style="font-size:12px;color:var(--muted);margin-top:4px">Примечание: ${esc(o.note)}</div>`:''}
+          </div>
+          ${thumb}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn btn-ghost btn-sm" onclick="dlCSV('${o.id}')">⬇ CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="dlAllPreviews('${o.id}')">🖼 Макеты</button>
+          ${o.is_new?`<button class="btn btn-sm" style="background:rgba(13,184,126,0.1);color:var(--accent2);border:1px solid rgba(13,184,126,0.25)" onclick="markRead('${o.id}')">✓ Просмотрен</button>`:''}
+          <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">✕ Удалить</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML=`<div class="empty">Ошибка: ${e.message}</div>`;}
+}
+
+function drawMiniSign(canvas,w,h,text,fs,font){
+  const scale=Math.min(200/w,80/h,2);
+  const pw=Math.round(w*scale),ph=Math.round(h*scale);
+  canvas.width=pw;canvas.height=ph;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,pw,ph);
+  ctx.strokeStyle='#4361ee';ctx.lineWidth=1.2;ctx.strokeRect(0.6,0.6,pw-1.2,ph-1.2);
+  const lines=(text||'').split('\n');
+  const sfs=Math.min(fs*scale*0.75,ph*0.65/Math.max(lines.length,1));
+  const lh=sfs*1.3,tot=lines.length*lh;
+  const sy=ph/2-tot/2+sfs*0.85;
+  ctx.fillStyle='#4361ee';ctx.font=`500 ${sfs}px ${font}`;ctx.textAlign='center';
+  lines.forEach((l,i)=>ctx.fillText(l,pw/2,sy+i*lh,pw-8));
+}
+
+let ordersCache=[];
+async function getOrder(id){
+  if(!ordersCache.length)ordersCache=await api('sign_orders?order=created_at.desc&limit=200');
+  return ordersCache.find(o=>o.id===id);
+}
+
+async function dlCSV(id){
+  const orders=await api('sign_orders?id=eq.'+id);
+  const o=orders[0];if(!o)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([o.csv_data||''],{type:'text/csv;charset=utf-8'}));
+  a.download=`${(o.client_name||'order').replace(/\s+/g,'_')}_order.csv`;a.click();
+}
+
+async function dlAllPreviews(id){
+  const orders=await api('sign_orders?id=eq.'+id);
+  const o=orders[0];if(!o)return;
+  const signs=Array.isArray(o.signs)?o.signs:[];
+  signs.forEach((s,i)=>{
+    const c=document.createElement('canvas');
+    const scale=Math.min(600/(s.w||150),300/(s.h||80),3);
+    const pw=Math.round((s.w||150)*scale),ph=Math.round((s.h||80)*scale);
+    c.width=pw+36;c.height=ph+28;
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,pw,ph);
+    ctx.strokeStyle='#4361ee';ctx.lineWidth=1.5;ctx.strokeRect(0.75,0.75,pw-1.5,ph-1.5);
+    const m=Math.max(3,Math.min(pw,ph)*0.06);
+    ctx.lineWidth=0.7;ctx.strokeRect(m,m,pw-2*m,ph-2*m);
+    const lines=(s.text||'').split('\n');
+    const sfs=Math.min((s.fontSize||24)*scale*0.75,ph*0.65/Math.max(lines.length,1));
+    const lh=sfs*1.35,tot=lines.length*lh,sy=ph/2-tot/2+sfs*0.85;
+    ctx.fillStyle='#4361ee';ctx.font=`500 ${sfs}px ${s.font||'Arial'}`;ctx.textAlign='center';
+    lines.forEach((l,li)=>ctx.fillText(l,pw/2,sy+li*lh,pw-m*3));
+    ctx.strokeStyle='#c7d2fe';ctx.lineWidth=0.7;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(0,ph+8);ctx.lineTo(pw,ph+8);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pw+7,0);ctx.lineTo(pw+7,ph);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#6b7280';ctx.font=`10px IBM Plex Mono,monospace`;ctx.textAlign='center';
+    ctx.fillText((s.w||150)+' мм',pw/2,ph+20);
+    ctx.save();ctx.translate(pw+24,ph/2);ctx.rotate(-Math.PI/2);ctx.fillText((s.h||80)+' мм',0,0);ctx.restore();
+    setTimeout(()=>{
+      const a=document.createElement('a');
+      a.href=c.toDataURL('image/png');
+      a.download=`${(o.client_name||'order').replace(/\s+/g,'_')}_табличка_${i+1}.png`;
+      a.click();
+    },i*300);
+  });
+}
+
+async function markRead(id){
+  await api('sign_orders?id=eq.'+id,'PATCH',{is_new:false});
+  toast('✓ Отмечен как просмотренный');
+  loadOrders();
+}
+async function deleteOrder(id){
+  if(!confirm('Удалить заказ?'))return;
+  await api('sign_orders?id=eq.'+id,'DELETE');
+  toast('Заказ удалён');loadOrders();
+}
+
+// --- TEMPLATES ---
+let tmplImg='';
+function previewTmplImg(inp){
+  if(!inp.files[0])return;
+  const r=new FileReader();
+  r.onload=e=>{tmplImg=e.target.result;document.getElementById('t-img-prev').innerHTML=`<img src="${tmplImg}" style="max-height:70px;border-radius:4px">`};
+  r.readAsDataURL(inp.files[0]);
+}
+async function addTemplate(){
+  const name=document.getElementById('t-name').value.trim();
+  if(!name){alert('Введите название');return;}
+  await api('sign_templates','POST',{
+    name,
+    width_mm:parseFloat(document.getElementById('t-w').value)||null,
+    height_mm:parseFloat(document.getElementById('t-h').value)||null,
+    description:document.getElementById('t-desc').value.trim()||null,
+    image_base64:tmplImg||null
+  });
+  toast('✅ Шаблон добавлен');
+  ['t-name','t-w','t-h','t-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('t-img-prev').innerHTML='';
+  document.getElementById('t-img').value='';tmplImg='';
+  loadTemplates();
+}
+async function loadTemplates(){
+  const el=document.getElementById('templates-list');
+  el.innerHTML='<div class="loading">Загрузка...</div>';
+  const data=await api('sign_templates?order=created_at.asc');
+  if(!data.length){el.innerHTML='<div class="empty">Нет шаблонов</div>';return;}
+  el.innerHTML=data.map(t=>`
+    <div class="item-row">
+      <div class="item-thumb">${t.image_base64?`<img src="${t.image_base64}">`:`<span style="font-size:10px;color:var(--muted)">нет фото</span>`}</div>
+      <div class="item-info">
+        <div class="item-name">${esc(t.name)}</div>
+        <div class="item-sub">${t.width_mm&&t.height_mm?t.width_mm+'×'+t.height_mm+' мм':''}${t.description?' · '+esc(t.description):''}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="delTemplate('${t.id}')">✕ Удалить</button>
+    </div>`).join('');
+}
+async function delTemplate(id){
+  if(!confirm('Удалить шаблон?'))return;
+  await api('sign_templates?id=eq.'+id,'DELETE');
+  toast('Шаблон удалён');loadTemplates();
+}
+
+// --- MATERIALS ---
+async function addMaterial(){
+  const name=document.getElementById('m-name').value.trim();
+  if(!name){alert('Введите название');return;}
+  await api('sign_materials','POST',{
+    name,description:document.getElementById('m-desc').value.trim()||null
+  });
+  toast('✅ Материал добавлен');
+  document.getElementById('m-name').value='';document.getElementById('m-desc').value='';
+  loadMaterials();
+}
+async function loadMaterials(){
+  const el=document.getElementById('materials-list');
+  el.innerHTML='<div class="loading">Загрузка...</div>';
+  const data=await api('sign_materials?order=created_at.asc');
+  if(!data.length){el.innerHTML='<div class="empty">Нет материалов</div>';return;}
+  el.innerHTML=data.map(m=>`
+    <div class="item-row">
+      <div class="item-info">
+        <div class="item-name">${esc(m.name)}</div>
+        ${m.description?`<div class="item-sub">${esc(m.description)}</div>`:''}
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="delMaterial('${m.id}')">✕ Удалить</button>
+    </div>`).join('');
+}
+async function delMaterial(id){
+  if(!confirm('Удалить материал?'))return;
+  await api('sign_materials?id=eq.'+id,'DELETE');
+  toast('Материал удалён');loadMaterials();
+}
+</script>
+</body>
+</html>
