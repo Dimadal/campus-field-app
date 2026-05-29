@@ -180,6 +180,22 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 
 .warn-strip { background: #fef3c7; border: 1px solid #fcd34d; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #92400e; text-align: center; }
 .done-strip { background: #d1fae5; border: 1px solid #6ee7b7; border-radius: var(--radius); padding: 12px; text-align: center; font-size: 14px; font-weight: 600; color: #065f46; }
+
+/* Material search modal */
+.mat-modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:flex-end;justify-content:center; }
+.mat-modal-overlay.open { display:flex; }
+.mat-modal { background:var(--white);border-radius:16px 16px 0 0;width:100%;max-width:480px;height:85vh;display:flex;flex-direction:column; }
+.mat-modal-header { padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between;flex-shrink:0 }
+.mat-modal-title { font-size:16px;font-weight:700;color:var(--text) }
+.mat-modal-close { background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-500);padding:0;line-height:1 }
+.mat-modal-search { padding:12px 16px;border-bottom:1px solid var(--gray-200);flex-shrink:0 }
+.mat-modal-search input { width:100%;padding:12px 16px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:16px;font-family:var(--sans);outline:none;background:var(--bg);color:var(--text) }
+.mat-modal-list { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch }
+.mat-modal-item { padding:14px 20px;border-bottom:1px solid var(--gray-100);cursor:pointer;display:flex;align-items:center;gap:12px }
+.mat-modal-item:active { background:var(--gray-100) }
+.mat-modal-item-num { font-family:var(--mono);font-size:11px;color:var(--gray-400);min-width:60px }
+.mat-modal-item-name { font-size:14px;font-weight:500;color:var(--text);flex:1 }
+.mat-modal-item-unit { font-size:12px;color:var(--gray-500);background:var(--gray-100);padding:2px 8px;border-radius:10px }
 </style>
 </head>
 <body>
@@ -203,7 +219,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.6</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.7</div>
     </div>
   </div>
 </div>
@@ -533,7 +549,37 @@ async function apiDB(path,method='GET',body=null,token=null){
   return method==='GET'?r.json():r.json().catch(()=>null);
 }
 
-function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+n).classList.add('active');window.scrollTo(0,0);}
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  window.scrollTo(0,0);
+  // Push state for back button handling
+  if(n !== 'login') {
+    history.pushState({screen:n}, '', '');
+  }
+}
+
+// Handle browser back button
+window.addEventListener('popstate', function(e) {
+  const screen = e.state?.screen;
+  if(!screen || screen === 'login') return;
+  // Navigate back within app
+  if(screen === 'home' || screen === 'menu') {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+(screen)).classList.add('active');
+    window.scrollTo(0,0);
+  } else if(screen === 'assignment') {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-home').classList.add('active');
+    window.scrollTo(0,0);
+  } else {
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-home').classList.add('active');
+    window.scrollTo(0,0);
+  }
+  // Push another state to prevent actual exit
+  history.pushState({screen:'home'}, '', '');
+});
 function toast(msg,dur=3000){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),dur);}
 function fmtDate(d){if(!d)return'';return new Date(d).toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'long'});}
 function fmtTime(ts){if(!ts)return'—';return new Date(ts).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});}
@@ -817,7 +863,8 @@ async function openAssignment(id){
     currentAssignment=assignments[0];
     const reports=await apiDB('reports?select=*&assignment_id=eq.'+id+'&order=created_at.desc&limit=1','GET',null,currentUser.access_token);
     currentReport=reports[0]||null;
-    document.getElementById('assign-date').textContent=fmtDate(currentAssignment.work_date);
+    document.getElementById('assign-date').textContent=fmtDate(currentAssignment.date_from||currentAssignment.work_date);
+    await loadDailyCheckins();
     renderAssignment();
   }catch(e){el.innerHTML='<div class="empty-wrap"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка</div></div>';}
 }
@@ -829,9 +876,40 @@ function updateSteps(hasArrived,hasReport,hasLeft){
   s3.className='step '+(hasLeft?'done':hasArrived&&hasReport?'active':'');
 }
 
+let dailyCheckins = [];
+
+async function loadDailyCheckins() {
+  try {
+    dailyCheckins = await apiDB('daily_checkins?select=*&assignment_id=eq.'+currentAssignment.id+'&order=work_date.asc','GET',null,currentUser.access_token);
+  } catch(e) { dailyCheckins = []; }
+}
+
+function getDaysRange(dateFrom, dateTo) {
+  const days = [];
+  let cur = new Date(dateFrom+'T12:00:00');
+  const end = new Date(dateTo+'T12:00:00');
+  while (cur <= end) {
+    days.push(cur.toISOString().split('T')[0]);
+    cur.setDate(cur.getDate()+1);
+  }
+  return days;
+}
+
+function isMultiDay() {
+  const a = currentAssignment;
+  const from = a.date_from || a.work_date;
+  const to = a.date_to || from;
+  return from !== to;
+}
+
 function renderAssignment(){
   const a=currentAssignment,r=currentReport,el=document.getElementById('assignment-content');
-  const hasArrived=!!r?.arrived_at,hasLeft=!!r?.left_at,hasReport=!!(r?.work_done&&r.work_done.trim().length>0);
+  const multi = isMultiDay();
+
+  // For single-day use old logic; for multi-day use checkins
+  const hasArrived = multi ? dailyCheckins.some(c=>c.arrived_at) : !!r?.arrived_at;
+  const hasLeft = multi ? dailyCheckins.every(c=>c.left_at) && dailyCheckins.length > 0 : !!r?.left_at;
+  const hasReport=!!(r?.work_done&&r.work_done.trim().length>0);
   updateSteps(hasArrived,hasReport,hasLeft);
   const obj=a.objects||{};
   let rows='';
@@ -844,54 +922,188 @@ function renderAssignment(){
   const descCard=a.description?`<div class="card" style="border-left:3px solid var(--blue)"><div class="card-header"><div class="card-label">Задание от менеджера</div></div><div class="card-body" style="font-size:14px;line-height:1.6">${a.description}</div></div>`:'';
   const bonusCard=a.bonus?`<div class="card" style="border-left:3px solid #0db87e"><div class="card-header"><div class="card-label">🎁 Бонус за работу</div></div><div class="card-body"><div style="font-size:26px;font-weight:700;color:#0db87e">₪${Number(a.bonus).toLocaleString('ru')}</div></div></div>`:'';
 
-  let actions='';
-  if(!hasArrived){
-    actions=`<div class="gps-strip loading" id="gps-status">📡 Определяем GPS...</div><button class="btn btn-green" onclick="checkIn()">✓ Прибыл на объект</button>`;
-  }else if(!hasLeft){
-    actions=`<div class="gps-strip loading" id="gps-status">📡 Определяем GPS...</div><div class="btn-group">
-      <button class="btn btn-outline" onclick="openReport()">📝 ${hasReport?'Изменить отчёт':'Заполнить отчёт'}</button>
-      ${hasReport?`<button class="btn btn-red" onclick="checkOut()">✗ Уезжаю с объекта</button>`:`<div class="warn-strip">⚠️ Заполните отчёт перед отъездом</div>`}
+  let timeSection='';
+  if(multi) {
+    // Multi-day: show list of days with checkin/checkout per day
+    const dateFrom = a.date_from||a.work_date;
+    const dateTo = a.date_to||dateFrom;
+    const days = getDaysRange(dateFrom, dateTo);
+    const today = new Date().toISOString().split('T')[0];
+
+    const dayRows = days.map(day => {
+      const checkin = dailyCheckins.find(c=>c.work_date===day);
+      const isPast = day < today;
+      const isFuture = day > today;
+      const isToday = day === today;
+      const dateLabel = new Date(day+'T12:00:00').toLocaleDateString('ru',{weekday:'short',day:'numeric',month:'short'});
+      const arrivedTime = checkin?.arrived_at ? fmtTime(checkin.arrived_at) : '—';
+      const leftTime = checkin?.left_at ? fmtTime(checkin.left_at) : '—';
+
+      let dayActions = '';
+      if(isFuture) {
+        dayActions = `<span style="font-size:11px;color:var(--gray-400)">предстоит</span>`;
+      } else if(!checkin?.arrived_at) {
+        if(isPast) {
+          dayActions = `<span style="font-size:11px;color:var(--gray-400)">пропущен</span>`;
+        } else {
+          dayActions = `<button class="btn btn-green btn-sm" onclick="checkInDay('${day}')" style="font-size:12px;padding:6px 12px">✓ Прибыл</button>`;
+        }
+      } else if(!checkin?.left_at) {
+        dayActions = `<button class="btn btn-red btn-sm" onclick="checkOutDay('${day}')" style="font-size:12px;padding:6px 12px">✗ Уехал</button>`;
+      } else {
+        dayActions = `<span style="font-size:11px;color:var(--green)">✓ Завершён</span>`;
+      }
+
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--gray-100);${isToday?'background:#f0f9ff;':isPast&&!checkin?.left_at?'background:#fff7f7;':''}">
+        <div style="flex:0 0 80px;font-size:12px;font-weight:${isToday?'700':'500'};color:${isToday?'var(--blue)':'var(--text)'}">
+          ${dateLabel}${isToday?' <span style="font-size:10px;background:var(--blue);color:white;padding:1px 5px;border-radius:4px">сегодня</span>':''}
+        </div>
+        <div style="flex:1;display:flex;gap:8px;font-size:12px;color:var(--gray-500)">
+          <span>🟢 ${arrivedTime}</span>
+          <span>🔴 ${leftTime}</span>
+        </div>
+        <div>${dayActions}</div>
+      </div>`;
+    }).join('');
+
+    timeSection = `<div class="card"><div class="card-header" style="display:flex;align-items:center;justify-content:space-between"><div class="card-label">📅 Дни работы</div><button onclick="extendAssignmentDay()" style="background:var(--blue);color:white;border:none;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--sans)">+ День</button></div>
+      <div style="padding:0">${dayRows}</div>
+      <div class="card-body" style="padding-top:10px">
+        <button class="btn btn-outline btn-sm" onclick="openReport()" style="width:100%">📝 ${hasReport?'Изменить отчёт':'Заполнить отчёт'}</button>
+      </div>
     </div>`;
-  }else{
-    actions=`<div class="done-strip">✓ Работа завершена · Отъезд: ${fmtTime(r?.left_at)}</div><div style="margin-top:10px"></div><button class="btn btn-ghost btn-sm" onclick="openReport()">📝 Просмотреть отчёт</button>`;
-  }
-  el.innerHTML=`
-    <div class="card"><div class="card-header"><div class="card-label">Работа</div></div><div class="card-body">${rows||'<div style="color:var(--gray-500)">Нет данных</div>'}</div></div>
-    ${descCard}
-    ${bonusCard}
-    <div class="card"><div class="card-header"><div class="card-label">Время работы</div></div><div class="card-body">
+  } else {
+    // Single day: original logic
+    let actions='';
+    if(!hasArrived){
+      actions=`<div class="gps-strip loading" id="gps-status">📡 Определяем GPS...</div><button class="btn btn-green" onclick="checkIn()">✓ Прибыл на объект</button>`;
+    }else if(!hasLeft){
+      actions=`<div class="gps-strip loading" id="gps-status">📡 Определяем GPS...</div><div class="btn-group">
+        <button class="btn btn-outline" onclick="openReport()">📝 ${hasReport?'Изменить отчёт':'Заполнить отчёт'}</button>
+        ${hasReport?`<button class="btn btn-red" onclick="checkOut()">✗ Уезжаю с объекта</button>`:`<div class="warn-strip">⚠️ Заполните отчёт перед отъездом</div>`}
+      </div>`;
+    }else{
+      actions=`<div class="done-strip">✓ Работа завершена · Отъезд: ${fmtTime(r?.left_at)}</div><div style="margin-top:10px"></div><button class="btn btn-ghost btn-sm" onclick="openReport()">📝 Просмотреть отчёт</button>`;
+    }
+    timeSection=`<div class="card"><div class="card-header"><div class="card-label">Время работы</div></div><div class="card-body">
       <div class="time-grid">
         <div class="time-box"><div class="time-lbl">Прибытие</div><div class="time-val ${hasArrived?'set':''}" id="time-arrived">${fmtTime(r?.arrived_at)}</div></div>
         <div class="time-box"><div class="time-lbl">Отъезд</div><div class="time-val ${hasLeft?'set':''}" id="time-left">${fmtTime(r?.left_at)}</div></div>
       </div>
       ${actions}
-    </div></div>
+    </div></div>`;
+  }
+
+  el.innerHTML=`
+    <div class="card"><div class="card-header"><div class="card-label">Работа</div></div><div class="card-body">${rows||'<div style="color:var(--gray-500)">Нет данных</div>'}</div></div>
+    ${descCard}
+    ${bonusCard}
+    ${timeSection}
     <div class="card"><div class="card-header"><div class="card-label">Задачи на объекте</div><button onclick="openTask()" style="background:var(--blue);color:white;border:none;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.04em">+ СОЗДАТЬ</button></div><div class="card-body" id="tasks-list"><div style="color:var(--gray-500);font-size:13px">Загрузка...</div></div></div>`;
   loadTasks();
-  getLocation().then(pos=>{
-    currentLat=pos.lat;currentLng=pos.lng;
-    const g=document.getElementById('gps-status');
-    if(g){g.className='gps-strip ok';g.textContent='✓ GPS определён ('+pos.lat.toFixed(4)+', '+pos.lng.toFixed(4)+')';}
-  }).catch(err=>{
-    const g=document.getElementById('gps-status');
-    if(g){g.className='gps-strip err';g.textContent='✗ '+err;}
-  });
+  if(!multi) {
+    getLocation().then(pos=>{
+      currentLat=pos.lat;currentLng=pos.lng;
+      const g=document.getElementById('gps-status');
+      if(g){g.className='gps-strip ok';g.textContent='✓ GPS определён ('+pos.lat.toFixed(4)+', '+pos.lng.toFixed(4)+')';}
+    }).catch(err=>{
+      const g=document.getElementById('gps-status');
+      if(g){g.className='gps-strip err';g.textContent='✗ '+err;}
+    });
+  }
+}
+
+async function extendAssignmentDay() {
+  const dateTo = currentAssignment.date_to || currentAssignment.work_date;
+  const newDate = new Date(dateTo+'T12:00:00');
+  newDate.setDate(newDate.getDate()+1);
+  const newDateStr = newDate.toISOString().split('T')[0];
+  const label = newDate.toLocaleDateString('ru',{day:'numeric',month:'long'});
+  if(!confirm(`Добавить день ${label}?`)) return;
+  try {
+    await apiDB('assignments?id=eq.'+currentAssignment.id,'PATCH',{date_to:newDateStr,work_date:currentAssignment.date_from||currentAssignment.work_date},currentUser.access_token);
+    currentAssignment.date_to = newDateStr;
+    toast('✓ Добавлен день: '+label);
+    await loadDailyCheckins();
+    renderAssignment();
+  } catch(e) { toast('Ошибка: '+e.message); }
+}
+
+async function checkInDay(day) {
+  try {
+    const now=new Date().toISOString();
+    const existing = dailyCheckins.find(c=>c.work_date===day);
+    let checkinId;
+    if(existing) {
+      await apiDB('daily_checkins?id=eq.'+existing.id,'PATCH',{arrived_at:now},currentUser.access_token);
+      checkinId=existing.id;
+    } else {
+      const res=await apiDB('daily_checkins','POST',{assignment_id:currentAssignment.id,work_date:day,arrived_at:now},currentUser.access_token);
+      checkinId=(Array.isArray(res)?res[0]:res)?.id;
+    }
+    // GPS in background
+    getLocation().then(pos=>{
+      if(checkinId) apiDB('daily_checkins?id=eq.'+checkinId,'PATCH',{arrived_lat:pos.lat,arrived_lng:pos.lng},currentUser.access_token);
+    }).catch(()=>{});
+    if(currentAssignment.status==='pending') {
+      await apiDB('assignments?id=eq.'+currentAssignment.id,'PATCH',{status:'active'},currentUser.access_token);
+      currentAssignment.status='active';
+    }
+    toast('✓ Прибытие отмечено в '+fmtTime(now));
+    await loadDailyCheckins();
+    renderAssignment();
+  } catch(e){toast('Ошибка: '+e.message);}
+}
+
+async function checkOutDay(day) {
+  try {
+    const now=new Date().toISOString();
+    const existing = dailyCheckins.find(c=>c.work_date===day);
+    if(existing) {
+      await apiDB('daily_checkins?id=eq.'+existing.id,'PATCH',{left_at:now},currentUser.access_token);
+      // GPS in background
+      getLocation().then(pos=>{
+        apiDB('daily_checkins?id=eq.'+existing.id,'PATCH',{left_lat:pos.lat,left_lng:pos.lng},currentUser.access_token);
+      }).catch(()=>{});
+    }
+    // Check if all days done
+    await loadDailyCheckins();
+    const dateFrom = currentAssignment.date_from||currentAssignment.work_date;
+    const dateTo = currentAssignment.date_to||dateFrom;
+    const allDays = getDaysRange(dateFrom, dateTo);
+    const allDone = allDays.every(d => {
+      const c = dailyCheckins.find(c=>c.work_date===d);
+      return c?.left_at;
+    });
+    if(allDone) {
+      await apiDB('assignments?id=eq.'+currentAssignment.id,'PATCH',{status:'done'},currentUser.access_token);
+      currentAssignment.status='done';
+      toast('✓ Отъезд отмечен. Все дни завершены!');
+    } else {
+      toast('✓ Отъезд отмечен в '+fmtTime(now));
+    }
+    renderAssignment();
+  } catch(e){toast('Ошибка: '+e.message);}
 }
 
 async function checkIn(){
   try{
     const now=new Date().toISOString();
     if(!currentReport){
-      const result=await apiDB('reports','POST',{assignment_id:currentAssignment.id,arrived_at:now,arrived_lat:currentLat,arrived_lng:currentLng},currentUser.access_token);
+      const result=await apiDB('reports','POST',{assignment_id:currentAssignment.id,arrived_at:now,arrived_lat:null,arrived_lng:null},currentUser.access_token);
       currentReport=Array.isArray(result)?result[0]:result;
     }else{
-      await apiDB('reports?id=eq.'+currentReport.id,'PATCH',{arrived_at:now,arrived_lat:currentLat,arrived_lng:currentLng},currentUser.access_token);
+      await apiDB('reports?id=eq.'+currentReport.id,'PATCH',{arrived_at:now},currentUser.access_token);
       currentReport.arrived_at=now;
     }
     await apiDB('assignments?id=eq.'+currentAssignment.id,'PATCH',{status:'active'},currentUser.access_token);
     currentAssignment.status='active';
     toast('✓ Прибытие отмечено в '+fmtTime(now));
     renderAssignment();
+    // GPS in background
+    getLocation().then(pos=>{
+      apiDB('reports?id=eq.'+currentReport.id,'PATCH',{arrived_lat:pos.lat,arrived_lng:pos.lng},currentUser.access_token);
+    }).catch(()=>{});
   }catch(e){toast('Ошибка: '+e.message);}
 }
 
@@ -994,7 +1206,7 @@ function addMaterialRow(name='', qty='', unit='шт') {
   div.innerHTML = `
     <div style="flex:1;position:relative">
       <input class="mat-name" placeholder="Поиск по каталогу или вручную" value="${name}"
-        oninput="matSearch(this,'${id}')" autocomplete="off"
+        onclick="openMatModal('${id}')" onfocus="openMatModal('${id}')" readonly style="cursor:pointer; autocomplete="off"
         style="width:100%;padding:9px 10px;border:1.5px solid var(--gray-300);border-radius:var(--radius);font-size:16px;font-family:var(--sans);outline:none;background:var(--white);color:var(--text)">
       <div id="mat-dd-${id}" style="display:none;position:absolute;z-index:999;background:#fff;border:1.5px solid #d1d5db;border-radius:8px;max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 16px rgba(0,0,0,.15);top:calc(100% + 2px);left:0"></div>
     </div>
@@ -1183,7 +1395,7 @@ function naSearchCustomers() {
   if (!matches.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = matches.map(c => `
-    <div onclick="naSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')
+    <div ontouchstart="naSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')
 " style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--gray-200)" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
       <span style="font-family:var(--mono);color:var(--gray-500);font-size:11px">${c.customer_number}</span>
       <span style="margin-left:8px;font-weight:500">${c.customer_name}</span>
@@ -1288,6 +1500,72 @@ async function submitNewAssignment(){
     switchTab('assignments');
   } catch(e) { toast('Ошибка: ' + e.message); }
 }
+
+let currentMatRowId = null;
+
+function openMatModal(rowId) {
+  currentMatRowId = rowId;
+  document.getElementById('mat-modal-input').value = '';
+  matModalSearch();
+  document.getElementById('mat-search-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('mat-modal-input').focus(), 300);
+}
+
+function closeMatModal() {
+  document.getElementById('mat-search-modal').classList.remove('open');
+  currentMatRowId = null;
+}
+
+function matModalSearch() {
+  const q = document.getElementById('mat-modal-input').value.trim().toLowerCase();
+  const list = document.getElementById('mat-modal-list');
+  const items = q
+    ? matCatalog.filter(m => (m.catalog_number||'').toLowerCase().includes(q) || (m.name||'').toLowerCase().includes(q)).slice(0,50)
+    : matCatalog.slice(0,50);
+  if(!items.length) {
+    list.innerHTML = `<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:14px">Нет результатов</div>`;
+    return;
+  }
+  list.innerHTML = items.map(m => `
+    <div class="mat-modal-item" onclick="matModalSelect('${m.name.replace(/'/g,"\'")}','${m.unit}','${m.catalog_number}')" ontouchend="event.preventDefault();matModalSelect('${m.name.replace(/'/g,"\'")}','${m.unit}','${m.catalog_number}')">
+      <span class="mat-modal-item-num">${m.catalog_number}</span>
+      <span class="mat-modal-item-name">${m.name}</span>
+      <span class="mat-modal-item-unit">${m.unit}</span>
+    </div>`).join('');
+}
+
+function matModalSelect(name, unit, number) {
+  if(!currentMatRowId) return;
+  const row = document.getElementById('mat-'+currentMatRowId);
+  if(row) {
+    row.querySelector('.mat-name').value = name;
+    document.getElementById('mat-unit-'+currentMatRowId).value = unit;
+    const qtyInput = document.getElementById('mat-qty-'+currentMatRowId);
+    if(qtyInput) qtyInput.focus();
+  }
+  closeMatModal();
+}
+
+// Close modal on overlay click
+document.getElementById('mat-search-modal').addEventListener('click', function(e) {
+  if(e.target === this) closeMatModal();
+});
+
 </script>
+
+<!-- Material search fullscreen modal -->
+<div class="mat-modal-overlay" id="mat-search-modal">
+  <div class="mat-modal">
+    <div class="mat-modal-header">
+      <span class="mat-modal-title">Выбор материала</span>
+      <button class="mat-modal-close" onclick="closeMatModal()">✕</button>
+    </div>
+    <div class="mat-modal-search">
+      <input type="text" id="mat-modal-input" placeholder="🔍 Поиск по номеру или названию..." oninput="matModalSearch()" autocomplete="off">
+    </div>
+    <div class="mat-modal-list" id="mat-modal-list"></div>
+  </div>
+</div>
+
 </body>
 </html>
