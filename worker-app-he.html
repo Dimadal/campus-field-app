@@ -191,7 +191,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .mat-modal-search { padding:12px 16px;border-bottom:1px solid var(--gray-200);flex-shrink:0 }
 .mat-modal-search input { width:100%;padding:12px 16px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:16px;font-family:var(--sans);outline:none;background:var(--bg);color:var(--text) }
 .mat-modal-list { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch }
-.mat-modal-item { padding:14px 20px;border-bottom:1px solid var(--gray-100);cursor:pointer;display:flex;align-items:center;gap:12px }
+.mat-modal-item { padding:14px 20px;border-bottom:1px solid var(--gray-100);cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;text-align:right;background:none;border-left:none;border-right:none;border-top:none;font-family:var(--sans) }
 .mat-modal-item:active { background:var(--gray-100) }
 .mat-modal-item-num { font-family:var(--mono);font-size:11px;color:var(--gray-400);min-width:60px }
 .mat-modal-item-name { font-size:14px;font-weight:500;color:var(--text);flex:1 }
@@ -917,6 +917,22 @@ function renderAssignment(){
   });
 }
 
+
+async function logActivity(eventType, entityType, entityId, description) {
+  try {
+    const actor = currentWorker?.full_name || '—';
+    const role = currentWorker?.is_supervisor ? 'supervisor' : 'worker';
+    await apiDB('activity_log','POST',{
+      event_type: eventType,
+      entity_type: entityType,
+      entity_id: String(entityId||''),
+      description,
+      actor,
+      actor_role: role
+    }, currentUser?.access_token);
+  } catch(e) {}
+}
+
 async function checkIn(){
   try{
     const now=new Date().toISOString();
@@ -930,6 +946,7 @@ async function checkIn(){
     await apiDB('assignments?id=eq.'+currentAssignment.id,'PATCH',{status:'active'},currentUser.access_token);
     currentAssignment.status='active';
     toast('✓ הגעה נרשמה ב-'+fmtTime(now));
+    logActivity('checkin','assignment',currentAssignment.id,'הגעה לאתר: '+(currentObject?.name||currentAssignment.object_id||''));
     renderAssignment();
     getLocation().then(pos=>{
       apiDB('reports?id=eq.'+currentReport.id,'PATCH',{arrived_lat:pos.lat,arrived_lng:pos.lng},currentUser.access_token);
@@ -946,6 +963,7 @@ async function checkOut(){
     currentAssignment.status='done';
     if(currentReport)currentReport.left_at=now;
     toast('✓ יציאה נרשמה ב-'+fmtTime(now));
+    logActivity('checkout','assignment',currentAssignment.id,'יציאה מהאתר: '+(currentObject?.name||currentAssignment.object_id||''));
     renderAssignment();
   }catch(e){toast('שגיאה: '+e.message);}
 }
@@ -1063,7 +1081,7 @@ function matSearch(input, rowId) {
       <span style="font-family:monospace;font-size:11px;color:#6b7280">${m.catalog_number}</span>
       <span style="margin-left:8px;font-weight:500">${m.name}</span>
       <span style="margin-left:4px;font-size:11px;color:#9ca3af">${m.unit}</span>
-    </div>`).join('');
+    </button>`).join('');
 }
 
 function matSelect(rowId, name, unit, number) {
@@ -1106,6 +1124,7 @@ async function submitReport(){
     const sendBtn=document.getElementById('btn-send-report');
     if(sendBtn)sendBtn.style.display='block';
     toast('✓ הדוח נשמר');
+    logActivity('report','assignment',currentAssignment.id,'דוח מולא');
     renderAssignment();
     showScreen('assignment');
   }catch(e){toast('שגיאה: '+e.message);}
@@ -1222,7 +1241,7 @@ function naSearchCustomers() {
 " style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--gray-200)" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
       <span style="font-family:var(--mono);color:var(--gray-500);font-size:11px">${c.customer_number}</span>
       <span style="margin-left:8px;font-weight:500">${c.customer_name}</span>
-    </div>`).join('');
+    </button>`).join('');
 }
 
 function naSelectCustomer(number, name, id) {
@@ -1415,11 +1434,11 @@ function cfwSearchCustomers() {
   const matches=brigadeAllCustomers.filter(c=>(c.customer_number||'').toLowerCase().includes(q)||(c.customer_name||'').toLowerCase().includes(q)).slice(0,20);
   if(!matches.length){dd.style.display='none';return;}
   dd.style.display='block';
-  dd.innerHTML=matches.map(c=>`<div onclick="cfwSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\'")}')
+  dd.innerHTML=matches.map(c=>`<button type="button" onclick="cfwSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\'")}')
 " style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--gray-200)" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
     <span style="font-family:var(--mono);color:var(--gray-500);font-size:11px">${c.customer_number}</span>
     <span style="margin-left:8px;font-weight:500">${c.customer_name}</span>
-  </div>`).join('');
+  </button>`).join('');
 }
 
 function cfwSelectCustomer(number,name,id){
@@ -1515,7 +1534,7 @@ function matModalSearch() {
       <span class="mat-modal-item-num">${m.catalog_number}</span>
       <span class="mat-modal-item-name">${m.name}</span>
       <span class="mat-modal-item-unit">${m.unit}</span>
-    </div>`).join('');
+    </button>`).join('');
 }
 
 function matModalSelect(name, unit, number) {
