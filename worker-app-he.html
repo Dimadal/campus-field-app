@@ -219,7 +219,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">כניסה למערכת</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.7</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.9</div>
     </div>
   </div>
 </div>
@@ -536,7 +536,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 <script>
 const SUPA = 'https://pvaogqxpbkwxarbgzvpi.supabase.co';
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2YW9ncXhwYmt3eGFyYmd6dnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTY4NTYsImV4cCI6MjA5NDczMjg1Nn0.ib17U3NvpLjVSm1GZ5eeXT79hiLfZaAKt2nALLMKHUY';
-let currentUser=null,currentWorker=null,currentAssignment=null,currentReport=null,currentLat=null,currentLng=null;
+let currentUser=null,currentWorker=null,currentAssignment=null,currentReport=null,currentObject=null,currentLat=null,currentLng=null;
 
 async function apiAuth(path,body){
   const r=await fetch(SUPA+'/auth/v1/'+path,{method:'POST',headers:{'apikey':ANON,'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -700,6 +700,7 @@ async function openAssignment(id){
   try{
     const assignments=await apiDB('assignments?select=*,objects(*)&id=eq.'+id,'GET',null,currentUser.access_token);
     currentAssignment=assignments[0];
+    currentObject=assignments[0]?.objects||{};
     const reports=await apiDB('reports?select=*&assignment_id=eq.'+id+'&order=created_at.desc&limit=1','GET',null,currentUser.access_token);
     currentReport=reports[0]||null;
     document.getElementById('assign-date').textContent=fmtDate(currentAssignment.date_from||currentAssignment.work_date);
