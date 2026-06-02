@@ -196,6 +196,17 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .mat-modal-item-num { font-family:var(--mono);font-size:11px;color:var(--gray-400);min-width:60px }
 .mat-modal-item-name { font-size:14px;font-weight:500;color:var(--text);flex:1 }
 .mat-modal-item-unit { font-size:12px;color:var(--gray-500);background:var(--gray-100);padding:2px 8px;border-radius:10px }
+
+/* Customer search modal */
+.customer-modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;align-items:flex-end;justify-content:center; }
+.customer-modal-overlay.open { display:flex; }
+.customer-modal { background:var(--white);border-radius:16px 16px 0 0;width:100%;max-width:480px;height:80vh;display:flex;flex-direction:column; }
+.customer-modal-header { padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between;flex-shrink:0 }
+.customer-modal-search { padding:12px 16px;border-bottom:1px solid var(--gray-200);flex-shrink:0 }
+.customer-modal-search input { width:100%;padding:12px 16px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:16px;font-family:var(--sans);outline:none }
+.customer-modal-list { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch }
+.customer-modal-item { display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--gray-100);cursor:pointer;width:100%;-webkit-tap-highlight-color:rgba(0,0,0,0.1) }
+.customer-modal-item:active { background:#f0f9ff }
 </style>
 </head>
 <body>
@@ -383,7 +394,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
       <div class="card-header"><div class="card-label">1. לקוח</div></div>
       <div class="card-body">
         <div style="position:relative">
-          <input class="form-input" type="text" id="na-client-search" placeholder="חיפוש לפי מספר או שם..." oninput="naSearchCustomers()" autocomplete="off">
+          <button type="button" onclick="openCustomerModal(function(id,num,name){naSelectCustomer(num,name,id)})" style="width:100%;padding:13px 16px;border:1.5px solid var(--gray-300);border-radius:var(--radius);font-size:16px;font-family:var(--sans);background:var(--white);color:var(--gray-400);text-align:right;cursor:pointer;direction:rtl" id="na-client-btn">חיפוש לפי מספר או שם...</button>
           <div id="na-client-dropdown" style="display:none;position:absolute;z-index:999;background:var(--white);border:1.5px solid var(--gray-300);border-radius:var(--radius);max-height:220px;overflow-y:auto;width:100%;box-shadow:0 4px 16px rgba(0,0,0,0.12);top:calc(100% + 4px);left:0"></div>
         </div>
         <input type="hidden" id="na-client-name">
@@ -466,7 +477,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
       <div class="card-header"><div class="card-label">2. לקוח</div></div>
       <div class="card-body">
         <div style="position:relative">
-          <input class="form-input" type="text" id="cfw-client-search" placeholder="חיפוש לפי מספר או שם..." oninput="cfwSearchCustomers()" autocomplete="off">
+          <button type="button" onclick="openCustomerModal(function(id,num,name){cfwSelectCustomer(num,name,id)})" style="width:100%;padding:13px 16px;border:1.5px solid var(--gray-300);border-radius:var(--radius);font-size:16px;font-family:var(--sans);background:var(--white);color:var(--gray-400);text-align:right;cursor:pointer;direction:rtl" id="cfw-client-btn">חיפוש לפי מספר או שם...</button>
           <div id="cfw-client-dropdown" style="display:none;position:absolute;z-index:999;background:var(--white);border:1.5px solid var(--gray-300);border-radius:var(--radius);max-height:220px;overflow-y:auto;width:100%;box-shadow:0 4px 16px rgba(0,0,0,0.12);top:calc(100% + 4px);left:0"></div>
         </div>
         <input type="hidden" id="cfw-client-name">
@@ -654,7 +665,7 @@ function switchTab(tab){
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='assignments'){showScreen('home');loadAssignments();}
   else if(tab==='mytasks'){showScreen('mytasks');loadMyTasks();}
-  else if(tab==='newtask'){showScreen('newtask');loadObjectsForSelect();document.getElementById('na-date').value=new Date().toISOString().split('T')[0];}
+  else if(tab==='newtask'){showScreen('newtask');loadObjectsForSelect();naLoadCustomers();document.getElementById('na-date').value=new Date().toISOString().split('T')[0];}
   else if(tab==='brigade'){showScreen('brigade');loadBrigade();}
 }
 
@@ -1237,10 +1248,11 @@ async function naLoadCustomers() {
   } catch(e) { naAllCustomers = []; }
 }
 
-function naSearchCustomers() {
+async function naSearchCustomers() {
   const q = document.getElementById('na-client-search').value.trim().toLowerCase();
   const dd = document.getElementById('na-client-dropdown');
   if (!q) { dd.style.display='none'; return; }
+  if(!naAllCustomers.length) await naLoadCustomers();
   const matches = naAllCustomers.filter(c =>
     (c.customer_number||'').toLowerCase().includes(q) ||
     (c.customer_name||'').toLowerCase().includes(q)
@@ -1248,10 +1260,12 @@ function naSearchCustomers() {
   if (!matches.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = matches.map(c => `
-    <button onclick="naSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')"
-      style="display:block;width:100%;padding:14px 16px;cursor:pointer;font-size:15px;border:none;border-bottom:1px solid var(--gray-200);background:white;text-align:right;font-family:var(--sans)">
-      <span style="font-family:var(--mono);color:var(--gray-500);font-size:12px">${c.customer_number}</span>
-      <span style="margin-left:8px;font-weight:500;color:#111">${c.customer_name}</span>
+    <button
+      onmousedown="event.preventDefault();naSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')"
+      ontouchstart="event.preventDefault();naSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')"
+      style="display:block;width:100%;padding:14px 16px;font-size:16px;border:none;border-bottom:1px solid #e5e7eb;background:white;text-align:right;font-family:var(--sans);cursor:pointer">
+      <span style="font-family:monospace;color:#6b7280;font-size:12px">${c.customer_number}</span>
+      <span style="margin-right:8px;font-weight:500;color:#111">${c.customer_name}</span>
     </button>`).join('');
 }
 
@@ -1259,7 +1273,7 @@ function naSelectCustomer(number, name, id) {
   document.getElementById('na-client-name').value = name;
   document.getElementById('na-client-number').value = number;
   document.getElementById('na-client-id').value = id || '';
-  document.getElementById('na-client-search').value = number + ' — ' + name;
+  const btn=document.getElementById('na-client-btn');if(btn){btn.textContent=number+' — '+name;btn.style.color='var(--text)';}document.getElementById('na-client-search') && (document.getElementById('na-client-search').value = number + ' — ' + name);
   document.getElementById('na-client-dropdown').style.display = 'none';
   const sel = document.getElementById('na-selected-customer');
   sel.style.display = 'block';
@@ -1271,316 +1285,138 @@ function naSelectCustomer(number, name, id) {
 function naToggleNewCustomer() {
   const form = document.getElementById('na-new-customer-form');
   const btn = document.getElementById('na-toggle-new-btn');
-  if (form.style.display === 'none') {
-    form.style.display = 'block';
-    btn.style.display = 'none';
-    // Clear selection
-    document.getElementById('na-client-name').value = '';
-    document.getElementById('na-client-number').value = '';
-    document.getElementById('na-client-search').value = '';
+  if(form.style.display === 'none') {
+    form.style.display = 'block'; btn.style.display = 'none';
+    ['na-client-name','na-client-number','na-client-id','na-client-search'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('na-selected-customer').style.display = 'none';
-  } else {
-    form.style.display = 'none';
-    btn.style.display = 'block';
-  }
+  } else { form.style.display = 'none'; btn.style.display = 'block'; }
 }
 
 async function naCreateCustomer() {
   const name = document.getElementById('na-nc-name').value.trim();
-  if (!name) { toast('הזן שם לקוח'); return; }
+  if(!name) { toast('הזן שם לקוח'); return; }
   try {
     const existing = await apiDB('customers?select=customer_number&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
     let maxNum = 0;
-    existing.forEach(c => {
-      const n = c.customer_number;
-      if (n && n.startsWith('*')) { const num = parseInt(n.slice(1)); if (!isNaN(num) && num > maxNum) maxNum = num; }
-    });
-    const number = '*' + String(maxNum + 1).padStart(5, '0');
-    await apiDB('customers','POST',{customer_number: number, customer_name: name},currentUser.access_token);
-    await naLoadCustomers();
-    naSelectCustomer(number, name);
+    existing.forEach(c => { const n=c.customer_number; if(n&&n.startsWith('*')){const num=parseInt(n.slice(1));if(!isNaN(num)&&num>maxNum)maxNum=num;}});
+    const number = '*' + String(maxNum+1).padStart(5,'0');
+    const res = await apiDB('customers','POST',{customer_number:number,customer_name:name},currentUser.access_token);
+    const newId = (Array.isArray(res)?res[0]:res)?.id;
+    naAllCustomers = await apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
+    naSelectCustomer(number, name, newId);
     document.getElementById('na-nc-name').value = '';
     toast('✅ לקוח נוצר: ' + number + ' — ' + name);
   } catch(e) { toast('שגיאה: ' + e.message); }
 }
 
-// Close dropdown on outside click
-document.addEventListener('click', e => {
-  if (!e.target.closest('#na-client-search') && !e.target.closest('#na-client-dropdown')) {
-    const dd = document.getElementById('na-client-dropdown');
-    if (dd) dd.style.display = 'none';
-  }
-});
-
-async function loadObjectsForSelect(){
-  await naLoadCustomers();
-  document.getElementById('na-date').value = new Date().toISOString().split('T')[0];
-}
-
-async function submitNewAssignment(){
+async function submitNewAssignment() {
+  const workerId = currentWorker.id;
   const clientName = document.getElementById('na-client-name').value.trim();
   const clientNumber = document.getElementById('na-client-number').value.trim();
-  const address = document.getElementById('na-obj-address').value.trim();
-  const workplace = document.getElementById('na-obj-workplace').value.trim();
   const date = document.getElementById('na-date').value;
-  if (!clientName) { toast('בחר או צור לקוח'); return; }
-  if (!date) { toast('בחר תאריך'); return; }
+  const address = document.getElementById('na-address').value.trim();
+  const workplace = document.getElementById('na-workplace').value.trim();
+  const desc = document.getElementById('na-desc').value.trim();
+  if(!clientName) { toast('בחר או צור לקוח'); return; }
+  if(!date) { toast('בחר תאריך'); return; }
   try {
     const objResult = await apiDB('objects','POST',{
-      name: clientName + (workplace ? ' — ' + workplace : ''),
-      address: address || null,
-      work_place: workplace || null,
-      client_name: clientName || null,
-      company: clientName || null,
-      company_phone: clientNumber || null,
-      status: 'active'
+      name: clientName+(workplace?' — '+workplace:''),
+      address: address||null, work_place: workplace||null,
+      client_name: clientName||null, company: clientName||null,
+      company_phone: clientNumber||null, status:'active'
     }, currentUser.access_token);
-    const newObj = Array.isArray(objResult) ? objResult[0] : objResult;
+    const newObj = Array.isArray(objResult)?objResult[0]:objResult;
     await apiDB('assignments','POST',{
-      worker_id: currentWorker.id,
-      object_id: newObj?.id,
-      work_date: date,
-      status: 'pending',
-      description: document.getElementById('na-desc').value.trim() || null
+      worker_id: workerId, object_id: newObj?.id,
+      work_date: date, date_from: date, date_to: date,
+      status:'pending', description: desc||null
     }, currentUser.access_token);
     toast('✓ משימה נוצרה');
-    // Reset form
-    ['na-client-search','na-client-name','na-client-number','na-obj-address','na-obj-workplace','na-desc'].forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('na-selected-customer').style.display = 'none';
-    document.getElementById('na-new-customer-form').style.display = 'none';
-    document.getElementById('na-toggle-new-btn').style.display = 'block';
+    ['na-client-search','na-client-name','na-client-number','na-client-id','na-address','na-workplace','na-desc'].forEach(id=>{document.getElementById(id).value='';});
+    document.getElementById('na-selected-customer').style.display='none';
     switchTab('assignments');
   } catch(e) { toast('שגיאה: ' + e.message); }
 }
 
-// ==================== BRIGADE ====================
-let brigadeWorkers = [];
-let brigadeAllCustomers = [];
+document.addEventListener('click', e => {
+  if(!e.target.closest('#na-client-search') && !e.target.closest('#na-client-dropdown')) {
+    const dd = document.getElementById('na-client-dropdown');
+    if(dd) dd.style.display = 'none';
+  }
+});
 
-async function loadBrigade() {
-  const el = document.getElementById('brigade-content');
-  el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div>טוען...</div>';
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    brigadeWorkers = await apiDB('workers?select=*&order=full_name.asc', 'GET', null, currentUser.access_token);
-    const assignments = await apiDB('assignments?select=*,objects(name,address)&work_date=eq.'+today+'&order=created_at.desc','GET',null,currentUser.access_token);
-    const byWorker = {};
-    assignments.forEach(a => { if(!byWorker[a.worker_id])byWorker[a.worker_id]=[]; byWorker[a.worker_id].push(a); });
-    let html = `<button class="btn btn-primary" style="margin-bottom:16px" onclick="openCreateForWorker()">➕ צור משימה לטכנאי</button>`;
-    html += `<div class="section-label">היום, ${new Date().toLocaleDateString('he',{day:'numeric',month:'long'})}</div>`;
-    brigadeWorkers.forEach(w => {
-      const displayName = w.full_name_he || w.full_name || '—';
-      const wA = byWorker[w.id]||[];
-      html += `<div class="card" style="margin-bottom:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${wA.length?'border-bottom:1px solid var(--gray-200)':''}">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">${(displayName||'?')[0]}</div>
-            <div><div style="font-weight:600;font-size:14px">${displayName}</div><div style="font-size:11px;color:var(--gray-500)">${w.role||''}</div></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:11px;color:${wA.length?'var(--green)':'var(--gray-300)'};font-weight:600">${wA.length?wA.length+' משימות':'פנוי'}</span>
-            <button class="btn btn-ghost btn-sm" onclick="openCreateForWorker('${w.id}')">+ משימה</button>
-          </div>
-        </div>
-        ${wA.map(a=>`<div style="padding:10px 14px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-size:13px;font-weight:500">${a.objects?.name||'—'}</div><div style="font-size:11px;color:var(--gray-500)">${a.objects?.address||''}</div></div>
-          <div style="display:flex;gap:6px;align-items:center">
-            ${a.bonus?`<span style="font-weight:700;color:#0db87e;font-size:13px">₪${Number(a.bonus).toLocaleString('he')}</span>`:''}
-            <span class="badge badge-${a.status==='done'?'green':a.status==='active'?'blue':'gray'}">${a.status==='done'?'הושלם':a.status==='active'?'בביצוע':'ממתין'}</span>
-            <button class="btn btn-ghost btn-sm" onclick="brigadeSetBonus('${a.id}',${a.bonus||0})" style="padding:3px 8px">🎁</button>
-            <button class="btn btn-ghost btn-sm" onclick="brigadeDeleteAssignment('${a.id}')" style="color:var(--red);padding:3px 8px">✕</button>
-          </div>
-        </div>`).join('')}
-      </div>`;
-    });
-    el.innerHTML = html;
-  } catch(e) { el.innerHTML = `<div class="empty-wrap"><div class="empty-title">שגיאה</div><div class="empty-sub">${e.message}</div></div>`; }
+let customerModalCallback = null;
+
+function openCustomerModal(callback) {
+  customerModalCallback = callback;
+  document.getElementById('customer-modal-input').value = '';
+  customerModalSearch();
+  document.getElementById('customer-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('customer-modal-input').focus(), 300);
 }
 
-async function brigadeDeleteAssignment(id) {
-  if(!confirm('למחוק את המשימה? היא תועבר לארכיון.')) return;
-  try {
-    const items = await apiDB('assignments?id=eq.'+id+'&select=*,workers(full_name),objects(name)','GET',null,currentUser.access_token);
-    const a = items[0];
-    if(a) {
-      await apiDB('archive','POST',{
-        type:'assignment',
-        data:{...a, _display:{worker:a.workers?.full_name||'—', object:a.objects?.name||'—'}},
-        deleted_by: currentWorker.full_name_he||currentWorker.full_name||'ראש צוות'
-      },currentUser.access_token);
-    }
-    await apiDB('assignments?id=eq.'+id,'DELETE',null,currentUser.access_token);
-    toast('✓ המשימה הועברה לארכיון');
-    loadBrigade();
-  } catch(e) { toast('שגיאה: '+e.message); }
+function closeCustomerModal() {
+  document.getElementById('customer-modal').classList.remove('open');
+  customerModalCallback = null;
 }
 
-async function brigadeSetBonus(id, current) {
-  const val = prompt('הזן בונוס בשקלים (0 — להסיר בונוס):', current||'');
-  if(val === null) return;
-  const bonus = parseFloat(val);
-  try {
-    await apiDB('assignments?id=eq.'+id,'PATCH',{bonus: (!isNaN(bonus)&&bonus>0)?bonus:null},currentUser.access_token);
-    toast(bonus>0?`✓ בונוס נקבע: ₪${bonus}`:'✓ הבונוס הוסר');
-    loadBrigade();
-  } catch(e) { toast('שגיאה: '+e.message); }
-}
+let _customerModalItems = [];
 
-function openCreateForWorker(workerId) {
-  const sel = document.getElementById('cfw-worker');
-  sel.innerHTML = '<option value="">— בחר טכנאי —</option>'+brigadeWorkers.map(w=>`<option value="${w.id}"${w.id===workerId?' selected':''}>${w.full_name_he||w.full_name||'—'}${w.role?' ('+w.role+')':''}</option>`).join('');
-  ['cfw-client-search','cfw-client-name','cfw-client-number','cfw-address','cfw-workplace','cfw-desc'].forEach(id=>{document.getElementById(id).value='';});
-  document.getElementById('cfw-selected-customer').style.display='none';
-  document.getElementById('cfw-new-customer-form').style.display='none';
-  document.getElementById('cfw-toggle-new-btn').style.display='block';
-  document.getElementById('cfw-date').value=new Date().toISOString().split('T')[0];
-  apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token).then(d=>{brigadeAllCustomers=d;});
-  showScreen('create-for-worker');
-}
-
-function cfwSearchCustomers() {
-  const q=document.getElementById('cfw-client-search').value.trim().toLowerCase();
-  const dd=document.getElementById('cfw-client-dropdown');
-  if(!q){dd.style.display='none';return;}
-  const matches=brigadeAllCustomers.filter(c=>(c.customer_number||'').toLowerCase().includes(q)||(c.customer_name||'').toLowerCase().includes(q)).slice(0,20);
-  if(!matches.length){dd.style.display='none';return;}
-  dd.style.display='block';
-  dd.innerHTML=matches.map(c=>`<button type="button" onclick="cfwSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\'")}')
-" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--gray-200)" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
-    <span style="font-family:var(--mono);color:var(--gray-500);font-size:11px">${c.customer_number}</span>
-    <span style="margin-left:8px;font-weight:500">${c.customer_name}</span>
-  </button>`).join('');
-}
-
-function cfwSelectCustomer(number,name,id){
-  document.getElementById('cfw-client-name').value=name;
-  document.getElementById('cfw-client-number').value=number;
-  document.getElementById('cfw-client-id').value=id||'';
-  document.getElementById('cfw-client-search').value=number+' — '+name;
-  document.getElementById('cfw-client-dropdown').style.display='none';
-  const sel=document.getElementById('cfw-selected-customer');
-  sel.style.display='block';
-  sel.innerHTML='✅ נבחר: <strong>'+name+'</strong> · <span style="font-family:var(--mono);font-size:12px">'+number+'</span>';
-  document.getElementById('cfw-new-customer-form').style.display='none';
-  document.getElementById('cfw-toggle-new-btn').style.display='block';
-}
-
-function cfwToggleNewCustomer(){
-  const form=document.getElementById('cfw-new-customer-form');
-  const btn=document.getElementById('cfw-toggle-new-btn');
-  if(form.style.display==='none'){form.style.display='block';btn.style.display='none';['cfw-client-name','cfw-client-number','cfw-client-search'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('cfw-selected-customer').style.display='none';}
-  else{form.style.display='none';btn.style.display='block';}
-}
-
-async function cfwCreateCustomer(){
-  const name=document.getElementById('cfw-nc-name').value.trim();
-  if(!name){toast('הזן שם לקוח');return;}
-  try{
-    const existing=await apiDB('customers?select=customer_number&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
-    let maxNum=0;existing.forEach(c=>{const n=c.customer_number;if(n&&n.startsWith('*')){const num=parseInt(n.slice(1));if(!isNaN(num)&&num>maxNum)maxNum=num;}});
-    const number='*'+String(maxNum+1).padStart(5,'0');
-    await apiDB('customers','POST',{customer_number:number,customer_name:name},currentUser.access_token);
-    brigadeAllCustomers=await apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
-    cfwSelectCustomer(number,name);document.getElementById('cfw-nc-name').value='';
-    toast('✅ לקוח נוצר: '+number+' — '+name);
-  }catch(e){toast('שגיאה: '+e.message);}
-}
-
-async function cfwSubmit(){
-  const workerId=document.getElementById('cfw-worker').value;
-  const clientName=document.getElementById('cfw-client-name').value.trim();
-  const clientNumber=document.getElementById('cfw-client-number').value.trim();
-  const date=document.getElementById('cfw-date').value;
-  const address=document.getElementById('cfw-address').value.trim();
-  const workplace=document.getElementById('cfw-workplace').value.trim();
-  const desc=document.getElementById('cfw-desc').value.trim();
-  if(!workerId){toast('בחר טכנאי');return;}
-  if(!clientName){toast('בחר או צור לקוח');return;}
-  if(!date){toast('בחר תאריך');return;}
-  try{
-    const result=await apiDB('objects','POST',{
-      name:clientName+(workplace?' — '+workplace:''),
-      address:address||null,
-      work_place:workplace||null,
-      client_name:clientName||null,
-      company:clientName||null,
-      company_phone:clientNumber||null,
-      status:'active'
-    },currentUser.access_token);
-    const newObj=Array.isArray(result)?result[0]:result;
-    await apiDB('assignments','POST',{worker_id:workerId,object_id:newObj?.id,work_date:date,status:'pending',description:desc||null},currentUser.access_token);
-    toast('✓ משימה נוצרה');showScreen('brigade');loadBrigade();
-  }catch(e){toast('שגיאה: '+e.message);}
-}
-// ==================== END BRIGADE ====================
-
-
-let currentMatRowId = null;
-
-async function openMatModal(rowId) {
-  currentMatRowId = rowId;
-  document.getElementById('mat-modal-input').value = '';
-  document.getElementById('mat-modal-list').innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:14px">טוען...</div>';
-  document.getElementById('mat-search-modal').classList.add('open');
-  // Load catalog if not loaded
-  if(!matCatalog.length) await loadMatCatalog();
-  matModalSearch();
-  setTimeout(()=>document.getElementById('mat-modal-input').focus(), 300);
-}
-
-function closeMatModal() {
-  document.getElementById('mat-search-modal').classList.remove('open');
-  currentMatRowId = null;
-}
-
-function matModalSearch() {
-  const q = document.getElementById('mat-modal-input').value.trim().toLowerCase();
-  const list = document.getElementById('mat-modal-list');
-  const items = q
-    ? matCatalog.filter(m => (m.catalog_number||'').toLowerCase().includes(q) || (m.name||'').toLowerCase().includes(q)).slice(0,100)
-    : matCatalog.slice(0,100);
-  if(!items.length) {
-    list.innerHTML = `<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:14px">אין תוצאות</div>`;
+async function customerModalSearch() {
+  if(!naAllCustomers.length) await naLoadCustomers();
+  const q = document.getElementById('customer-modal-input').value.trim().toLowerCase();
+  const list = document.getElementById('customer-modal-list');
+  _customerModalItems = q
+    ? naAllCustomers.filter(c => (c.customer_number||'').toLowerCase().includes(q) || (c.customer_name||'').toLowerCase().includes(q)).slice(0,50)
+    : naAllCustomers.slice(0,50);
+  if(!_customerModalItems.length) {
+    list.innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:14px">אין תוצאות</div>';
     return;
   }
-  list.innerHTML = items.map(m => `
-    <button class="mat-modal-item" onclick="matModalSelect('${m.name.replace(/'/g,"\\'")}','${m.unit}','${m.catalog_number}')">
-      <span class="mat-modal-item-num">${m.catalog_number}</span>
-      <span class="mat-modal-item-name">${m.name}</span>
-      <span class="mat-modal-item-unit">${m.unit}</span>
-    </button>`).join('');
+  list.innerHTML = _customerModalItems.map((c,i) => `
+    <div class="customer-modal-item" data-idx="${i}" style="-webkit-tap-highlight-color:rgba(67,97,238,0.15)">
+      <span style="font-family:var(--mono);font-size:12px;color:var(--gray-500);min-width:70px">${c.customer_number}</span>
+      <span style="font-size:14px;font-weight:500;color:var(--text)">${c.customer_name}</span>
+    </div>`).join('');
+  // Add touch handler to each item directly after render
+  list.querySelectorAll('.customer-modal-item').forEach(item => {
+    item.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const c = _customerModalItems[parseInt(this.dataset.idx)];
+      if(c) { customerModalSelect(c.id, c.customer_number, c.customer_name); }
+    });
+    item.addEventListener('click', function(e) {
+      const c = _customerModalItems[parseInt(this.dataset.idx)];
+      if(c) { customerModalSelect(c.id, c.customer_number, c.customer_name); }
+    });
+  });
 }
 
-function matModalSelect(name, unit, number) {
-  if(!currentMatRowId) return;
-  const row = document.getElementById('mat-'+currentMatRowId);
-  if(row) {
-    row.querySelector('.mat-name').value = name;
-    document.getElementById('mat-unit-'+currentMatRowId).value = unit;
-    const qtyInput = document.getElementById('mat-qty-'+currentMatRowId);
-    if(qtyInput) qtyInput.focus();
-  }
-  closeMatModal();
+function customerModalSelect(id, number, name) {
+  if(customerModalCallback) customerModalCallback(id, number, name);
+  closeCustomerModal();
 }
 
-// Close modal on overlay click
-document.getElementById('mat-search-modal').addEventListener('click', function(e) {
-  if(e.target === this) closeMatModal();
+// Close on overlay click
+document.getElementById('customer-modal').addEventListener('click', function(e) {
+  if(e.target === this) closeCustomerModal();
 });
 
 </script>
 
-<!-- Material search fullscreen modal -->
-<div class="mat-modal-overlay" id="mat-search-modal">
-  <div class="mat-modal">
-    <div class="mat-modal-header">
-      <span class="mat-modal-title">בחירת חומר</span>
-      <button class="mat-modal-close" onclick="closeMatModal()">✕</button>
+<!-- Customer search fullscreen modal -->
+<div class="customer-modal-overlay" id="customer-modal">
+  <div class="customer-modal">
+    <div class="customer-modal-header">
+      <span style="font-size:16px;font-weight:700;color:var(--text)">בחירת לקוח</span>
+      <button onclick="closeCustomerModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-500);padding:0">✕</button>
     </div>
-    <div class="mat-modal-search">
-      <input type="text" id="mat-modal-input" placeholder="🔍 חיפוש לפי מספר או שם..." oninput="matModalSearch()" autocomplete="off">
+    <div class="customer-modal-search">
+      <input type="text" id="customer-modal-input" placeholder="חיפוש לפי מספר או שם..." oninput="customerModalSearch()" autocomplete="off">
     </div>
-    <div class="mat-modal-list" id="mat-modal-list"></div>
+    <div class="customer-modal-list" id="customer-modal-list"></div>
   </div>
 </div>
 
