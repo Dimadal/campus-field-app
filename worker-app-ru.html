@@ -1449,13 +1449,16 @@ function naSelectCustomer(number, name, id) {
   document.getElementById('na-client-name').value = name;
   document.getElementById('na-client-number').value = number;
   document.getElementById('na-client-id').value = id || '';
-  const btn=document.getElementById('na-client-btn');if(btn){btn.textContent=number+' — '+name;btn.style.color='var(--text)';}document.getElementById('na-client-search') && (document.getElementById('na-client-search').value = number + ' — ' + name);
-  document.getElementById('na-client-dropdown').style.display = 'none';
+  const btn = document.getElementById('na-client-btn');
+  if(btn) { btn.textContent = number + ' — ' + name; btn.style.color = 'var(--text)'; }
+  const dd = document.getElementById('na-client-dropdown');
+  if(dd) dd.style.display = 'none';
   const sel = document.getElementById('na-selected-customer');
-  sel.style.display = 'block';
-  sel.innerHTML = '✅ Выбран: <strong>' + name + '</strong> · <span style="font-family:var(--mono);font-size:12px">' + number + '</span>';
-  document.getElementById('na-new-customer-form').style.display = 'none';
-  document.getElementById('na-toggle-new-btn').style.display = 'block';
+  if(sel) { sel.style.display = 'block'; sel.innerHTML = '✅ Выбран: <strong>' + name + '</strong> · <span style="font-family:var(--mono);font-size:12px">' + number + '</span>'; }
+  const form = document.getElementById('na-new-customer-form');
+  if(form) form.style.display = 'none';
+  const toggleBtn = document.getElementById('na-toggle-new-btn');
+  if(toggleBtn) toggleBtn.style.display = 'block';
 }
 
 function naToggleNewCustomer() {
@@ -1490,9 +1493,10 @@ async function submitNewAssignment() {
   const clientName = document.getElementById('na-client-name').value.trim();
   const clientNumber = document.getElementById('na-client-number').value.trim();
   const date = document.getElementById('na-date').value;
-  const address = document.getElementById('na-address').value.trim();
-  const workplace = document.getElementById('na-workplace').value.trim();
+  const address = document.getElementById('na-obj-address').value.trim();
+  const workplace = document.getElementById('na-obj-workplace').value.trim();
   const desc = document.getElementById('na-desc').value.trim();
+  console.log('submitNewAssignment:', {workerId, clientName, clientNumber, date});
   if(!clientName) { toast('Выберите или создайте клиента'); return; }
   if(!date) { toast('Выберите дату'); return; }
   try {
@@ -1509,7 +1513,12 @@ async function submitNewAssignment() {
       status:'pending', description: desc||null
     }, currentUser.access_token);
     toast('✓ Задание создано');
-    ['na-client-search','na-client-name','na-client-number','na-client-id','na-address','na-workplace','na-desc'].forEach(id=>{document.getElementById(id).value='';});
+    // Reset form
+    ['na-client-name','na-client-number','na-client-id','na-obj-address','na-obj-workplace','na-desc'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value='';
+    });
+    const btn = document.getElementById('na-client-btn');
+    if(btn) { btn.textContent='Поиск по номеру или названию...'; btn.style.color='var(--gray-400)'; }
     document.getElementById('na-selected-customer').style.display='none';
     switchTab('assignments');
   } catch(e) { toast('Ошибка: ' + e.message); }
@@ -1517,15 +1526,14 @@ async function submitNewAssignment() {
 
 // Close dropdowns on outside click
 document.addEventListener('click', e => {
-  if(!e.target.closest('#na-client-search') && !e.target.closest('#na-client-dropdown')) {
+  if(!e.target.closest('#na-client-dropdown')) {
     const dd = document.getElementById('na-client-dropdown');
     if(dd) dd.style.display = 'none';
   }
-  if(!e.target.closest('#cfw-client-search') && !e.target.closest('#cfw-client-dropdown')) {
+  if(!e.target.closest('#cfw-client-dropdown')) {
     const dd = document.getElementById('cfw-client-dropdown');
     if(dd) dd.style.display = 'none';
   }
-  if(matSearchModal && !matSearchModal.contains(e.target)) matSearchModal.style.display = 'none';
 });
 
 let customerModalCallback = null;
