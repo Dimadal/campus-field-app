@@ -1248,10 +1248,10 @@ function naSearchCustomers() {
   if (!matches.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = matches.map(c => `
-    <div ontouchstart="naSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')
-" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--gray-200)" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
-      <span style="font-family:var(--mono);color:var(--gray-500);font-size:11px">${c.customer_number}</span>
-      <span style="margin-left:8px;font-weight:500">${c.customer_name}</span>
+    <button onclick="naSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')"
+      style="display:block;width:100%;padding:14px 16px;cursor:pointer;font-size:15px;border:none;border-bottom:1px solid var(--gray-200);background:white;text-align:right;font-family:var(--sans)">
+      <span style="font-family:var(--mono);color:var(--gray-500);font-size:12px">${c.customer_number}</span>
+      <span style="margin-left:8px;font-weight:500;color:#111">${c.customer_name}</span>
     </button>`).join('');
 }
 
