@@ -928,6 +928,7 @@ function renderAssignment(){
     ${descCard}
     ${bonusCard}
     ${timeSection}
+    ${hasReport ? `<button class="btn btn-outline" onclick="sendReportWhatsApp()" style="margin-bottom:8px">📲 שלח דוח (WhatsApp)</button>` : ''}
     <div class="card"><div class="card-header"><div class="card-label">משימות באתר</div><button onclick="openTask()" style="background:var(--blue);color:white;border:none;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.04em">+ צור</button></div><div class="card-body" id="tasks-list"><div style="color:var(--gray-500);font-size:13px">טוען...</div></div></div>`;
   loadTasks();
   getLocation().then(pos=>{
@@ -999,8 +1000,7 @@ function openReport(){
   reportPhotos=[];
   if(currentReport)apiDB('materials?select=*&report_id=eq.'+currentReport.id,'GET',null,currentUser.access_token).then(mats=>mats.forEach(m=>addMaterialRow(m.name,m.quantity,m.unit)));
   if(currentReport)loadReportPhotos(currentReport.id);
-  const sendBtn=document.getElementById('btn-send-report');
-  if(sendBtn)sendBtn.style.display=currentReport?.id?'block':'none';
+
   showScreen('report');
 }
 
@@ -1143,8 +1143,7 @@ async function submitReport(){
       }
       if(reportPhotos.length>0)await uploadPhotos(reportId);
     }
-    const sendBtn=document.getElementById('btn-send-report');
-    if(sendBtn)sendBtn.style.display='block';
+
     toast('✓ הדוח נשמר');
     logActivity('report','assignment',currentAssignment.id,'דוח מולא');
     renderAssignment();
@@ -1172,20 +1171,31 @@ async function sendReportWhatsApp(){
     if(mats.length)matsText='\n\n📦 *חומרים:*\n'+mats.map(m=>`• ${m.name}: ${m.quantity} ${m.unit}`).join('\n');
   }catch(e){}
 
-  const text=`📋 *דוח עבודה*
+  const orderNum = currentAssignment?.objects?.order_number || currentObject?.order_number || '';
+  const clientOrderNum = currentAssignment?.objects?.client_order_number || currentObject?.client_order_number || '';
+  const workerNameHe = currentWorker?.full_name_he || currentWorker?.full_name || '';
+  const dateArr = (currentAssignment?.date_from || currentAssignment?.work_date || '').split('-');
+  const dateHe = dateArr.length === 3 ? dateArr.reverse().join('.') : date;
 
-📅 תאריך: ${date}
-👷 טכנאי: ${worker.full_name_he||worker.full_name||''}
-🏢 אתר: ${obj.name||''}
-📍 כתובת: ${obj.address||''}
+  const text=`לכבוד הלקוח,
+היום ביקר אצלכם נציג מטעם קמפוס הנדסת תקשורת בע"מ.
+היה לנו עונג לשרת אתכם ואנו מקווים שהשירות עמד בציפיותיכם.
+מצורף דוח עבודה מפורט.
+----------------------------
 
-✅ *בוצע:*
+דוח עבודה
+
+תאריך: ${dateHe}
+טכנאי: ${workerNameHe}
+לקוח: ${obj.client_name||obj.company||obj.name||''}
+כתובת: ${obj.address||''}${orderNum ? '\nהזמנה פנימי: '+orderNum : ''}${clientOrderNum ? '\nהזמנה לקוח: '+clientOrderNum : ''}
+
+מה בוצע:
 ${r.work_done||'—'}
 
-🔧 *נותר:*
+מה נותר:
 ${r.work_remaining||'—'}${matsText}
-
-🕐 הגעה: ${fmtTime(r.arrived_at)||'—'} · יציאה: ${fmtTime(r.left_at)||'—'}`;
+`;
 
   const encoded=encodeURIComponent(text);
   const url=waNumber?`https://wa.me/${waNumber}?text=${encoded}`:`https://wa.me/?text=${encoded}`;
@@ -1249,9 +1259,8 @@ async function naLoadCustomers() {
 }
 
 async function naSearchCustomers() {
-  const q = document.getElementById('na-client-search').value.trim().toLowerCase();
-  const dd = document.getElementById('na-client-dropdown');
-  if (!q) { dd.style.display='none'; return; }
+  // na-client-search replaced by modal button
+  return;
   if(!naAllCustomers.length) await naLoadCustomers();
   const matches = naAllCustomers.filter(c =>
     (c.customer_number||'').toLowerCase().includes(q) ||
@@ -1405,8 +1414,95 @@ function customerModalSelect(id, number, name) {
 }
 
 // Close on overlay click
-document.getElementById('customer-modal').addEventListener('click', function(e) {
-  if(e.target === this) closeCustomerModal();
+// customer-modal listener moved to DOMContentLoaded
+
+
+let currentMatRowId = null;
+let _matModalItems = [];
+
+async function openMatModal(rowId) {
+  currentMatRowId = rowId;
+  document.getElementById('mat-modal-input').value = '';
+  document.getElementById('mat-modal-list').innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray-400)">טוען...</div>';
+  document.getElementById('mat-search-modal').classList.add('open');
+  if(!matCatalog.length) await loadMatCatalog();
+  matModalSearch();
+  setTimeout(()=>document.getElementById('mat-modal-input').focus(), 300);
+}
+
+function closeMatModal() {
+  document.getElementById('mat-search-modal').classList.remove('open');
+  currentMatRowId = null;
+}
+
+function matModalSearch() {
+  const q = document.getElementById('mat-modal-input').value.trim().toLowerCase();
+  const list = document.getElementById('mat-modal-list');
+  _matModalItems = q
+    ? matCatalog.filter(m => (m.catalog_number||'').toLowerCase().includes(q) || (m.name||'').toLowerCase().includes(q)).slice(0,100)
+    : matCatalog.slice(0,100);
+  if(!_matModalItems.length) {
+    list.innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:14px">אין תוצאות</div>';
+    return;
+  }
+  list.innerHTML = _matModalItems.map((m,i) => `
+    <div class="mat-modal-item" data-idx="${i}" style="-webkit-tap-highlight-color:rgba(67,97,238,0.15)">
+      <span class="mat-modal-item-num">${m.catalog_number}</span>
+      <span class="mat-modal-item-name">${m.name}</span>
+      <span class="mat-modal-item-unit">${m.unit}</span>
+    </div>`).join('');
+  list.querySelectorAll('.mat-modal-item').forEach(item => {
+    item.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      const m = _matModalItems[parseInt(this.dataset.idx)];
+      if(m) matModalSelect(currentMatRowId, m.name, m.unit, m.catalog_number);
+    });
+    item.addEventListener('click', function() {
+      const m = _matModalItems[parseInt(this.dataset.idx)];
+      if(m) matModalSelect(currentMatRowId, m.name, m.unit, m.catalog_number);
+    });
+  });
+}
+
+function matModalSelect(rowId, name, unit, number) {
+  if(!rowId) return;
+  const row = document.getElementById('mat-'+rowId);
+  if(row) {
+    row.querySelector('.mat-name').value = name;
+    const uEl = document.getElementById('mat-unit-'+rowId);
+    if(uEl) uEl.value = unit;
+    const qEl = document.getElementById('mat-qty-'+rowId);
+    if(qEl) qEl.focus();
+  }
+  closeMatModal();
+}
+
+// mat-search-modal listener added after DOM ready
+window.addEventListener('DOMContentLoaded', function() {
+  const matModal = document.getElementById('mat-search-modal');
+  if(matModal) matModal.addEventListener('click', function(e) {
+    if(e.target === this) closeMatModal();
+  });
+  const custModal = document.getElementById('customer-modal');
+  if(custModal) custModal.addEventListener('click', function(e) {
+    if(e.target === this) closeCustomerModal();
+  });
+  const custList = document.getElementById('customer-modal-list');
+  if(custList) {
+    custList.addEventListener('touchend', function(e) {
+      const item = e.target.closest('.customer-modal-item');
+      if(!item) return;
+      e.preventDefault();
+      const c = _customerModalItems[parseInt(item.dataset.idx)];
+      if(c) customerModalSelect(c.id, c.customer_number, c.customer_name);
+    });
+    custList.addEventListener('click', function(e) {
+      const item = e.target.closest('.customer-modal-item');
+      if(!item) return;
+      const c = _customerModalItems[parseInt(item.dataset.idx)];
+      if(c) customerModalSelect(c.id, c.customer_number, c.customer_name);
+    });
+  }
 });
 
 </script>
@@ -1422,6 +1518,21 @@ document.getElementById('customer-modal').addEventListener('click', function(e) 
       <input type="text" id="customer-modal-input" placeholder="חיפוש לפי מספר או שם..." oninput="customerModalSearch()" autocomplete="off">
     </div>
     <div class="customer-modal-list" id="customer-modal-list"></div>
+  </div>
+</div>
+
+
+<!-- Mat search modal -->
+<div class="mat-modal-overlay" id="mat-search-modal">
+  <div class="mat-modal">
+    <div class="mat-modal-header">
+      <span class="mat-modal-title">בחירת חומר</span>
+      <button class="mat-modal-close" onclick="closeMatModal()">✕</button>
+    </div>
+    <div class="mat-modal-search">
+      <input type="text" id="mat-modal-input" placeholder="חיפוש לפי מספר או שם..." oninput="matModalSearch()" autocomplete="off">
+    </div>
+    <div class="mat-modal-list" id="mat-modal-list"></div>
   </div>
 </div>
 

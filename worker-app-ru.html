@@ -339,7 +339,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
       </div>
     </div>
     <button class="btn btn-primary" onclick="submitReport()" style="margin-bottom:12px">Сохранить отчёт</button>
-    <button class="btn btn-outline" id="btn-send-report" onclick="sendReportWhatsApp()" style="margin-bottom:32px;display:none">📲 Отправить клиенту (WhatsApp)</button>
+    
   </div>
 </div>
 
@@ -755,7 +755,7 @@ function openCreateForWorker(workerId) {
 }
 
 function cfwSearchCustomers() {
-  const q=document.getElementById('cfw-client-search').value.trim().toLowerCase();
+  const q=''; // cfw-client-search replaced by modal button
   const dd=document.getElementById('cfw-client-dropdown');
   if(!q){dd.style.display='none';return;}
   const matches=brigadeAllCustomers.filter(c=>(c.customer_number||'').toLowerCase().includes(q)||(c.customer_name||'').toLowerCase().includes(q)).slice(0,20);
@@ -770,7 +770,7 @@ function cfwSearchCustomers() {
       <span style="margin-left:8px;font-weight:500;color:#111">${c.customer_name}</span>
     </button>`).join('');
   document.getElementById('cfw-client-id').value=id||'';
-  document.getElementById('cfw-client-search').value=number+' — '+name;
+  const cfwBtn=document.getElementById('cfw-client-btn');if(cfwBtn){cfwBtn.textContent=number+' — '+name;cfwBtn.style.color='var(--text)';}
   document.getElementById('cfw-client-dropdown').style.display='none';
   const sel=document.getElementById('cfw-selected-customer');
   sel.style.display='block';
@@ -1020,6 +1020,7 @@ function renderAssignment(){
     ${descCard}
     ${bonusCard}
     ${timeSection}
+    ${hasReport ? `<button class="btn btn-outline" onclick="sendReportWhatsApp()" style="margin-bottom:8px">📲 Отправить отчёт (WhatsApp)</button>` : ''}
     <div class="card"><div class="card-header"><div class="card-label">Задачи на объекте</div><button onclick="openTask()" style="background:var(--blue);color:white;border:none;padding:5px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.04em">+ СОЗДАТЬ</button></div><div class="card-body" id="tasks-list"><div style="color:var(--gray-500);font-size:13px">Загрузка...</div></div></div>`;
   loadTasks();
   if(!multi) {
@@ -1168,8 +1169,7 @@ function openReport(){
   if(currentReport)apiDB('materials?select=*&report_id=eq.'+currentReport.id,'GET',null,currentUser.access_token).then(mats=>mats.forEach(m=>addMaterialRow(m.name,m.quantity,m.unit)));
   if(currentReport)loadReportPhotos(currentReport.id);
   // show send button if report already saved
-  const sendBtn=document.getElementById('btn-send-report');
-  if(sendBtn)sendBtn.style.display=currentReport?.id?'block':'none';
+
   showScreen('report');
 }
 
@@ -1314,8 +1314,7 @@ async function submitReport(){
       if(reportPhotos.length>0)await uploadPhotos(reportId);
     }
     // show send button
-    const sendBtn=document.getElementById('btn-send-report');
-    if(sendBtn)sendBtn.style.display='block';
+
     toast('✓ Отчёт сохранён');
     logActivity('report','assignment',currentAssignment.id,'Отчёт заполнен');
     renderAssignment();
@@ -1347,20 +1346,31 @@ async function sendReportWhatsApp(){
     if(mats.length)matsText='\n\n📦 *Материалы:*\n'+mats.map(m=>`• ${m.name}: ${m.quantity} ${m.unit}`).join('\n');
   }catch(e){}
 
-  const text=`📋 *Отчёт о выполненной работе*
+  const orderNum = currentAssignment?.objects?.order_number || currentObject?.order_number || '';
+  const clientOrderNum = currentAssignment?.objects?.client_order_number || currentObject?.client_order_number || '';
+  const workerNameHe = currentWorker?.full_name_he || currentWorker?.full_name || '';
+  const dateArr = (currentAssignment?.date_from || currentAssignment?.work_date || '').split('-');
+  const dateHe = dateArr.length === 3 ? dateArr.reverse().join('.') : date;
 
-📅 Дата: ${date}
-👷 Техник: ${worker.full_name||''}
-🏢 Объект: ${obj.name||''}
-📍 Адрес: ${obj.address||''}
+  const text=`לכבוד הלקוח,
+היום ביקר אצלכם נציג מטעם קמפוס הנדסת תקשורת בע"מ.
+היה לנו עונג לשרת אתכם ואנו מקווים שהשירות עמד בציפיותיכם.
+מצורף דוח עבודה מפורט.
+----------------------------
 
-✅ *Выполнено:*
+דוח עבודה
+
+תאריך: ${dateHe}
+טכנאי: ${workerNameHe}
+לקוח: ${obj.client_name||obj.company||obj.name||''}
+כתובת: ${obj.address||''}${orderNum ? '\nהזמנה פנימי: '+orderNum : ''}${clientOrderNum ? '\nהזמנה לקוח: '+clientOrderNum : ''}
+
+מה בוצע:
 ${r.work_done||'—'}
 
-🔧 *Осталось:*
+מה נותר:
 ${r.work_remaining||'—'}${matsText}
-
-🕐 Прибытие: ${fmtTime(r.arrived_at)||'—'} · Отъезд: ${fmtTime(r.left_at)||'—'}`;
+`;
 
   const encoded=encodeURIComponent(text);
   const url=waNumber?`https://wa.me/${waNumber}?text=${encoded}`:`https://wa.me/?text=${encoded}`;
@@ -1424,9 +1434,8 @@ async function naLoadCustomers() {
 }
 
 async function naSearchCustomers() {
-  const q = document.getElementById('na-client-search').value.trim().toLowerCase();
-  const dd = document.getElementById('na-client-dropdown');
-  if (!q) { dd.style.display='none'; return; }
+  // na-client-search replaced by modal button
+  return;
   // Load if not loaded yet
   if(!naAllCustomers.length) await naLoadCustomers();
   const matches = naAllCustomers.filter(c =>
@@ -1590,8 +1599,95 @@ function customerModalSelect(id, number, name) {
 }
 
 // Close on overlay click
-document.getElementById('customer-modal').addEventListener('click', function(e) {
-  if(e.target === this) closeCustomerModal();
+// customer-modal listener moved to DOMContentLoaded
+
+
+let currentMatRowId = null;
+let _matModalItems = [];
+
+async function openMatModal(rowId) {
+  currentMatRowId = rowId;
+  document.getElementById('mat-modal-input').value = '';
+  document.getElementById('mat-modal-list').innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray-400)">Загрузка...</div>';
+  document.getElementById('mat-search-modal').classList.add('open');
+  if(!matCatalog.length) await loadMatCatalog();
+  matModalSearch();
+  setTimeout(()=>document.getElementById('mat-modal-input').focus(), 300);
+}
+
+function closeMatModal() {
+  document.getElementById('mat-search-modal').classList.remove('open');
+  currentMatRowId = null;
+}
+
+function matModalSearch() {
+  const q = document.getElementById('mat-modal-input').value.trim().toLowerCase();
+  const list = document.getElementById('mat-modal-list');
+  _matModalItems = q
+    ? matCatalog.filter(m => (m.catalog_number||'').toLowerCase().includes(q) || (m.name||'').toLowerCase().includes(q)).slice(0,100)
+    : matCatalog.slice(0,100);
+  if(!_matModalItems.length) {
+    list.innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:14px">Нет результатов</div>';
+    return;
+  }
+  list.innerHTML = _matModalItems.map((m,i) => `
+    <div class="mat-modal-item" data-idx="${i}" style="-webkit-tap-highlight-color:rgba(67,97,238,0.15)">
+      <span class="mat-modal-item-num">${m.catalog_number}</span>
+      <span class="mat-modal-item-name">${m.name}</span>
+      <span class="mat-modal-item-unit">${m.unit}</span>
+    </div>`).join('');
+  list.querySelectorAll('.mat-modal-item').forEach(item => {
+    item.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      const m = _matModalItems[parseInt(this.dataset.idx)];
+      if(m) matModalSelect(currentMatRowId, m.name, m.unit, m.catalog_number);
+    });
+    item.addEventListener('click', function() {
+      const m = _matModalItems[parseInt(this.dataset.idx)];
+      if(m) matModalSelect(currentMatRowId, m.name, m.unit, m.catalog_number);
+    });
+  });
+}
+
+function matModalSelect(rowId, name, unit, number) {
+  if(!rowId) return;
+  const row = document.getElementById('mat-'+rowId);
+  if(row) {
+    row.querySelector('.mat-name').value = name;
+    const uEl = document.getElementById('mat-unit-'+rowId);
+    if(uEl) uEl.value = unit;
+    const qEl = document.getElementById('mat-qty-'+rowId);
+    if(qEl) qEl.focus();
+  }
+  closeMatModal();
+}
+
+// mat-search-modal listener added after DOM ready
+window.addEventListener('DOMContentLoaded', function() {
+  const matModal = document.getElementById('mat-search-modal');
+  if(matModal) matModal.addEventListener('click', function(e) {
+    if(e.target === this) closeMatModal();
+  });
+  const custModal = document.getElementById('customer-modal');
+  if(custModal) custModal.addEventListener('click', function(e) {
+    if(e.target === this) closeCustomerModal();
+  });
+  const custList = document.getElementById('customer-modal-list');
+  if(custList) {
+    custList.addEventListener('touchend', function(e) {
+      const item = e.target.closest('.customer-modal-item');
+      if(!item) return;
+      e.preventDefault();
+      const c = _customerModalItems[parseInt(item.dataset.idx)];
+      if(c) customerModalSelect(c.id, c.customer_number, c.customer_name);
+    });
+    custList.addEventListener('click', function(e) {
+      const item = e.target.closest('.customer-modal-item');
+      if(!item) return;
+      const c = _customerModalItems[parseInt(item.dataset.idx)];
+      if(c) customerModalSelect(c.id, c.customer_number, c.customer_name);
+    });
+  }
 });
 
 </script>
@@ -1607,6 +1703,21 @@ document.getElementById('customer-modal').addEventListener('click', function(e) 
       <input type="text" id="customer-modal-input" placeholder="Поиск по номеру или названию..." oninput="customerModalSearch()" autocomplete="off">
     </div>
     <div class="customer-modal-list" id="customer-modal-list"></div>
+  </div>
+</div>
+
+
+<!-- Mat search modal -->
+<div class="mat-modal-overlay" id="mat-search-modal">
+  <div class="mat-modal">
+    <div class="mat-modal-header">
+      <span class="mat-modal-title">Выбор материала</span>
+      <button class="mat-modal-close" onclick="closeMatModal()">✕</button>
+    </div>
+    <div class="mat-modal-search">
+      <input type="text" id="mat-modal-input" placeholder="Поиск по номеру или названию..." oninput="matModalSearch()" autocomplete="off">
+    </div>
+    <div class="mat-modal-list" id="mat-modal-list"></div>
   </div>
 </div>
 
