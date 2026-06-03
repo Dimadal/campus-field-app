@@ -1798,6 +1798,7 @@ function generateReportPDF(r, lang='ru') {
 
   const logoEl = document.querySelector('.sidebar img');
   const logoSrc = logoEl ? logoEl.src : '';
+  const reportData = r; // alias for template use
 
   if (isHe) {
     // ===== HEBREW BLAN STYLE =====
@@ -1905,6 +1906,14 @@ function generateReportPDF(r, lang='ru') {
   <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:10px">הנני מאשר בזאת קבלת העבודה לשביעות רצוני</div>
 
   <div class="sign-section">
+    ${reportData.client_signed_name ? `
+    <div style="background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;padding:12px 16px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:8px">✅ הדוח נחתם דיגיטלית</div>
+      <div style="font-size:12px;color:#374151">שם: ${reportData.client_signed_name}</div>
+      <div style="font-size:12px;color:#374151">טלפון: ${reportData.client_signed_phone||'—'}</div>
+      <div style="font-size:11px;color:#6b7280">תאריך חתימה: ${reportData.signed_at ? new Date(reportData.signed_at).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</div>
+      ${reportData.client_signature ? `<div style="margin-top:8px"><img src="${reportData.client_signature}" style="max-width:200px;border:1px solid #d1d5db;border-radius:4px;background:white"></div>` : ''}
+    </div>` : `
     <div class="sign-row">
       <div class="sign-field"><span class="sign-label">שם:</span><span class="sign-line"></span></div>
     </div>
@@ -1914,7 +1923,7 @@ function generateReportPDF(r, lang='ru') {
     </div>
     <div class="sign-row">
       <div class="sign-field"><span class="sign-label">חתימה + חותמת:</span><span class="sign-line" style="width:200px"></span></div>
-    </div>
+    </div>`}
   </div>
 
   <button class="print-btn no-print" onclick="window.print()">🖨 הדפסה / שמירה כ-PDF</button>

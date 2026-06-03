@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>אישור עבודה - Campus Communications</title>
+<style>
+  * { box-sizing:border-box;margin:0;padding:0 }
+  body { font-family:Arial,sans-serif;background:#f3f4f6;color:#1f2937;direction:rtl }
+  .container { max-width:480px;margin:0 auto;padding:16px }
+  .logo { text-align:center;padding:24px 0 16px;font-size:22px;font-weight:700;color:#1a56db }
+  .card { background:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.08) }
+  .card-title { font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px }
+  .info-row { display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:14px }
+  .info-label { font-weight:600;color:#374151 }
+  .info-value { color:#6b7280 }
+  .form-group { margin-bottom:14px }
+  .form-label { font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:6px }
+  .form-input { width:100%;padding:12px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:16px;font-family:Arial;outline:none;direction:rtl }
+  .form-input:focus { border-color:#1a56db }
+  .canvas-wrap { border:2px solid #d1d5db;border-radius:8px;background:#fafafa;position:relative;margin-bottom:8px }
+  canvas { display:block;width:100%;touch-action:none }
+  .canvas-hint { font-size:12px;color:#9ca3af;text-align:center;margin-bottom:12px }
+  .btn { width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;font-family:Arial }
+  .btn-primary { background:#1a56db;color:#fff }
+  .btn-ghost { background:#f3f4f6;color:#374151;margin-top:8px }
+  .btn:disabled { opacity:.5;cursor:not-allowed }
+  .error { background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;font-size:14px;color:#b91c1c;margin-bottom:16px;display:none }
+  .success { text-align:center;padding:40px 20px;display:none }
+  .success-icon { font-size:60px;margin-bottom:16px }
+  .success-title { font-size:22px;font-weight:700;color:#059669;margin-bottom:8px }
+  .success-sub { font-size:14px;color:#6b7280 }
+  .expired { text-align:center;padding:60px 20px }
+  .expired-icon { font-size:60px;margin-bottom:16px }
+  .spinner { text-align:center;padding:60px;font-size:14px;color:#6b7280 }
+  .signed-badge { background:#d1fae5;border:1px solid #6ee7b7;border-radius:8px;padding:12px 16px;font-size:14px;color:#065f46;margin-bottom:16px;text-align:center }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">Campus Communications</div>
+
+  <!-- Loading -->
+  <div id="loading" class="spinner">טוען...</div>
+
+  <!-- Expired -->
+  <div id="expired" style="display:none" class="expired">
+    <div class="expired-icon">⏰</div>
+    <div style="font-size:20px;font-weight:700;color:#dc2626;margin-bottom:8px">הקישור פג תוקף</div>
+    <div style="font-size:14px;color:#6b7280">קישור לחתימה תקף ל-24 שעות בלבד.<br>אנא פנה לנציג שלנו לקבלת קישור חדש.</div>
+  </div>
+
+  <!-- Already signed -->
+  <div id="already-signed" style="display:none">
+    <div class="signed-badge">✅ הדוח כבר נחתם</div>
+  </div>
+
+  <!-- Main form -->
+  <div id="main" style="display:none">
+    <div class="card" id="report-info">
+      <div class="card-title">פרטי העבודה</div>
+      <div id="info-rows"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">פרטי הלקוח החותם</div>
+      <div class="error" id="form-error"></div>
+      <div class="form-group">
+        <label class="form-label">שם מלא *</label>
+        <input type="text" class="form-input" id="client-name" placeholder="ישראל ישראלי">
+      </div>
+      <div class="form-group">
+        <label class="form-label">מספר טלפון *</label>
+        <input type="tel" class="form-input" id="client-phone" placeholder="050-1234567">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">חתימה *</div>
+      <div class="canvas-wrap">
+        <canvas id="sig-canvas" height="180"></canvas>
+      </div>
+      <div class="canvas-hint">חתום/י באצבע בתיבה למעלה</div>
+      <button class="btn btn-ghost" onclick="clearCanvas()">נקה חתימה</button>
+    </div>
+
+    <button class="btn btn-primary" id="submit-btn" onclick="submitSignature()">אשר וחתום</button>
+  </div>
+
+  <!-- Success -->
+  <div id="success" class="success">
+    <div class="success-icon">✅</div>
+    <div class="success-title">תודה רבה!</div>
+    <div class="success-sub">החתימה נקלטה בהצלחה.<br>אנו מודים לך על שיתוף הפעולה.</div>
+  </div>
+</div>
+
+<script>
+const SUPA = 'https://pvaogqxpbkwxarbgzvpi.supabase.co';
+const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2YW9ncXhwYmt3eGFyYmd6dnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTY4NTYsImV4cCI6MjA5NDczMjg1Nn0.ib17U3NvpLjVSm1GZ5eeXT79hiLfZaAKt2nALLMKHUY';
+
+let reportData = null;
+let token = null;
+
+async function apiGet(path) {
+  const r = await fetch(SUPA+'/rest/v1/'+path, {
+    headers: {'apikey': ANON, 'Authorization': 'Bearer '+ANON}
+  });
+  return r.json();
+}
+
+async function apiPatch(path, body) {
+  const r = await fetch(SUPA+'/rest/v1/'+path, {
+    method: 'PATCH',
+    headers: {'apikey': ANON, 'Authorization': 'Bearer '+ANON, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// Load report on page load
+window.addEventListener('load', async () => {
+  const params = new URLSearchParams(window.location.search);
+  token = params.get('token');
+
+  if(!token) {
+    document.getElementById('loading').innerHTML = '<div class="expired"><div class="expired-icon">❌</div><div style="font-size:18px;font-weight:700;color:#dc2626">קישור לא תקין</div></div>';
+    return;
+  }
+
+  try {
+    const data = await apiGet('reports?select=*,assignments(work_date,date_from,workers(full_name,full_name_he),objects(name,address,client_name,company,order_number,client_order_number))&sign_token=eq.'+token+'&limit=1');
+    
+    document.getElementById('loading').style.display = 'none';
+
+    if(!data.length) {
+      document.getElementById('expired').style.display = 'block';
+      return;
+    }
+
+    reportData = data[0];
+
+    // Check 24h expiry
+    if(reportData.sign_sent_at) {
+      const sentAt = new Date(reportData.sign_sent_at);
+      const now = new Date();
+      const diffHours = (now - sentAt) / (1000 * 60 * 60);
+      if(diffHours > 24) {
+        document.getElementById('expired').style.display = 'block';
+        return;
+      }
+    }
+
+    // Check if already signed
+    if(reportData.signed_at) {
+      document.getElementById('already-signed').style.display = 'block';
+      document.getElementById('already-signed').innerHTML = `
+        <div class="signed-badge">✅ הדוח נחתם ב-${new Date(reportData.signed_at).toLocaleDateString('he-IL')} על ידי ${reportData.client_signed_name||''}</div>`;
+    }
+
+    // Show report info
+    const a = reportData.assignments;
+    const obj = a?.objects || {};
+    const worker = a?.workers || {};
+    const dateRaw = a?.date_from || a?.work_date || '';
+    const dateStr = dateRaw ? dateRaw.split('-').reverse().join('.') : '';
+    const clientName = obj.client_name || obj.company || obj.name || '';
+
+    let rows = `
+      <div class="info-row"><span class="info-label">תאריך:</span><span class="info-value">${dateStr}</span></div>
+      <div class="info-row"><span class="info-label">לקוח:</span><span class="info-value">${clientName}</span></div>
+      <div class="info-row"><span class="info-label">כתובת:</span><span class="info-value">${obj.address||''}</span></div>
+      <div class="info-row"><span class="info-label">טכנאי:</span><span class="info-value">${worker.full_name_he||worker.full_name||''}</span></div>`;
+    if(obj.order_number) rows += `<div class="info-row"><span class="info-label">הזמנה פנימי:</span><span class="info-value">${obj.order_number}</span></div>`;
+    if(obj.client_order_number) rows += `<div class="info-row"><span class="info-label">הזמנה לקוח:</span><span class="info-value">${obj.client_order_number}</span></div>`;
+    if(reportData.work_done) rows += `<div class="info-row" style="flex-direction:column;gap:4px"><span class="info-label">מה בוצע:</span><span class="info-value" style="font-size:13px">${reportData.work_done}</span></div>`;
+
+    document.getElementById('info-rows').innerHTML = rows;
+    document.getElementById('main').style.display = 'block';
+
+    initCanvas();
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '<div style="text-align:center;color:#dc2626;padding:40px">שגיאה בטעינת הדוח</div>';
+  }
+});
+
+// Canvas signature
+let canvas, ctx, isDrawing = false, hasSigned = false;
+
+function initCanvas() {
+  canvas = document.getElementById('sig-canvas');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = 180 * window.devicePixelRatio;
+  canvas.style.height = '180px';
+  ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  ctx.strokeStyle = '#1f2937';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); startDraw(e.touches[0]); }, {passive:false});
+  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); draw(e.touches[0]); }, {passive:false});
+  canvas.addEventListener('touchend', stopDraw);
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: (e.clientX||e.pageX) - rect.left, y: (e.clientY||e.pageY) - rect.top };
+}
+
+function startDraw(e) { isDrawing=true; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
+function draw(e) { if(!isDrawing) return; const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasSigned=true; }
+function stopDraw() { isDrawing=false; }
+
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width/window.devicePixelRatio, canvas.height/window.devicePixelRatio);
+  hasSigned = false;
+}
+
+async function submitSignature() {
+  const name = document.getElementById('client-name').value.trim();
+  const phone = document.getElementById('client-phone').value.trim();
+  const errEl = document.getElementById('form-error');
+
+  if(!name) { errEl.textContent='אנא הזן שם מלא'; errEl.style.display='block'; return; }
+  if(!phone) { errEl.textContent='אנא הזן מספר טלפון'; errEl.style.display='block'; return; }
+  if(!hasSigned) { errEl.textContent='אנא חתום/י בתיבת החתימה'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'שומר...';
+
+  try {
+    const signatureData = canvas.toDataURL('image/png');
+    await apiPatch('reports?sign_token=eq.'+token, {
+      client_signature: signatureData,
+      client_signed_name: name,
+      client_signed_phone: phone,
+      signed_at: new Date().toISOString()
+    });
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+  } catch(e) {
+    errEl.textContent = 'שגיאה בשמירת החתימה. נסה שוב.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'אשר וחתום';
+  }
+}
+</script>
+</body>
+</html>

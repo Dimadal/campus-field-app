@@ -1197,7 +1197,21 @@ ${r.work_done||'—'}
 ${r.work_remaining||'—'}${matsText}
 `;
 
-  const encoded=encodeURIComponent(text);
+  // Generate sign token and save to report
+  let signLink = '';
+  try {
+    const token = Math.random().toString(36).substr(2,9) + Date.now().toString(36);
+    const reportId = currentReport?.id;
+    if(reportId) {
+      await apiDB('reports?id=eq.'+reportId,'PATCH',{
+        sign_token: token,
+        sign_sent_at: new Date().toISOString()
+      }, currentUser.access_token);
+      signLink = '\n\nלאישור וחתימה על הדוח:\nhttps://dimadal.github.io/campus-field-app/sign.html?token='+token;
+    }
+  } catch(e) {}
+
+  const encoded=encodeURIComponent(text + signLink);
   const url=waNumber?`https://wa.me/${waNumber}?text=${encoded}`:`https://wa.me/?text=${encoded}`;
   window.open(url,'_blank');
 }
