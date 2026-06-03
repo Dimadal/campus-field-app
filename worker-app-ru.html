@@ -1343,14 +1343,14 @@ async function sendReportWhatsApp(){
   let matsText='';
   try{
     const mats=await apiDB('materials?select=*&report_id=eq.'+r.id,'GET',null,currentUser.access_token);
-    if(mats.length)matsText='\n\n📦 *Материалы:*\n'+mats.map(m=>`• ${m.name}: ${m.quantity} ${m.unit}`).join('\n');
+    if(mats.length)matsText='\n\nחומרים:\n'+mats.map(m=>`• ${m.name}: ${m.quantity} ${m.unit}`).join('\n');
   }catch(e){}
 
   const orderNum = currentAssignment?.objects?.order_number || currentObject?.order_number || '';
   const clientOrderNum = currentAssignment?.objects?.client_order_number || currentObject?.client_order_number || '';
   const workerNameHe = currentWorker?.full_name_he || currentWorker?.full_name || '';
-  const dateArr = (currentAssignment?.date_from || currentAssignment?.work_date || '').split('-');
-  const dateHe = dateArr.length === 3 ? dateArr.reverse().join('.') : date;
+  const rawDate = currentAssignment?.date_from || currentAssignment?.work_date || '';
+  const dateHe = rawDate ? rawDate.split('-').reverse().join('.') : fmtDate(currentAssignment?.work_date);
 
   const text=`לכבוד הלקוח,
 היום ביקר אצלכם נציג מטעם קמפוס הנדסת תקשורת בע"מ.
