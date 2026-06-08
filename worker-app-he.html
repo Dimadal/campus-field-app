@@ -233,7 +233,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">כניסה למערכת</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.11</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.11.001</div>
     </div>
   </div>
 </div>
@@ -639,6 +639,7 @@ async function login(){
 document.getElementById('password-input').addEventListener('keypress',e=>{if(e.key==='Enter')login();});
 
 function logout(){
+  localStorage.removeItem('worker_session');
   matCatalog=[];currentUser=null;currentWorker=null;currentAssignment=null;currentReport=null;
   document.getElementById('phone-input').value='';
   document.getElementById('password-input').value='';
@@ -1547,6 +1548,33 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+
+// Auto-login from localStorage
+window.addEventListener('DOMContentLoaded', async function() {
+  const saved = localStorage.getItem('worker_session');
+  if(!saved) return;
+  try {
+    const session = JSON.parse(saved);
+    if(!session.user?.access_token || !session.worker) return;
+    // Verify token is still valid
+    const workers = await apiDB('workers?select=*&id=eq.'+session.worker.id,'GET',null,session.user.access_token);
+    if(!workers.length) { localStorage.removeItem('worker_session'); return; }
+    currentUser = session.user;
+    currentWorker = workers[0];
+    const displayName = currentWorker.full_name_he||currentWorker.full_name || '—';
+    document.getElementById('menu-name').textContent = displayName;
+    document.getElementById('menu-role').textContent = currentWorker.role||'';
+    document.getElementById('menu-date').textContent = new Date().toLocaleDateString('he',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('header-name').textContent = displayName;
+    document.getElementById('mytasks-name').textContent = displayName;
+    if(currentWorker.is_supervisor) {
+      document.getElementById('tab-brigade').style.display='flex';
+    }
+    showScreen('menu');
+  } catch(e) {
+    localStorage.removeItem('worker_session');
+  }
+});
 </script>
 
 <!-- Customer search fullscreen modal -->
