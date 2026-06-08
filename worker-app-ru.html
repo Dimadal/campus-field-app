@@ -191,7 +191,10 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .mat-modal-search { padding:12px 16px;border-bottom:1px solid var(--gray-200);flex-shrink:0 }
 .mat-modal-search input { width:100%;padding:12px 16px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:16px;font-family:var(--sans);outline:none;background:var(--bg);color:var(--text) }
 .mat-modal-list { flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch }
-.mat-modal-item { padding:14px 20px;border-bottom:1px solid var(--gray-100);cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;text-align:right;background:none;border-left:none;border-right:none;border-top:none;font-family:var(--sans) }
+.mat-modal-item { padding:12px 16px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:12px;width:100%;background:white;transition:background 0.1s }
+.mat-modal-item.selected { background:#eff6ff }
+.mat-modal-item input[type=checkbox] { width:20px;height:20px;accent-color:#4361ee;cursor:pointer;flex-shrink:0 }
+.mat-modal-footer { padding:12px 16px;border-top:2px solid var(--gray-200);flex-shrink:0;background:white }
 .mat-modal-item:active { background:var(--gray-100) }
 .mat-modal-item-num { font-family:var(--mono);font-size:11px;color:var(--gray-400);min-width:60px }
 .mat-modal-item-name { font-size:14px;font-weight:500;color:var(--text);flex:1 }
@@ -230,7 +233,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.10</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.11</div>
     </div>
   </div>
 </div>
@@ -305,7 +308,10 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 <div class="screen" id="screen-report">
   <div class="header">
     <div><div class="header-title">Отчёт о работе</div></div>
-    <button class="back-btn" onclick="showScreen('assignment')">← Назад</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary btn-sm" onclick="submitReport()" style="padding:8px 14px;font-size:13px">💾 Сохранить</button>
+      <button class="back-btn" onclick="showScreen('assignment')">← Назад</button>
+    </div>
   </div>
   <div class="content">
     <div class="card">
@@ -338,7 +344,6 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <div style="font-size:11px;color:var(--gray-400);margin-top:6px">Можно выбрать несколько фото</div>
       </div>
     </div>
-    <button class="btn btn-primary" onclick="submitReport()" style="margin-bottom:12px">Сохранить отчёт</button>
     
   </div>
 </div>
@@ -1325,9 +1330,15 @@ async function submitReport(){
 async function sendReportWhatsApp(){
   // Load WA number from settings
   let waNumber='';
+  let waHeader=`לכבוד הלקוח,
+היום ביקר אצלכם נציג מטעם קמפוס הנדסת תקשורת בע"מ.
+היה לנו עונג לשרת אתכם ואנו מקווים שהשירות עמד בציפיותיכם.
+מצורף דוח עבודה מפורט.
+----------------------------`;
   try{
-    const settings=await apiDB('company_settings?select=whatsapp_number&limit=1','GET',null,currentUser.access_token);
+    const settings=await apiDB('company_settings?select=whatsapp_number,whatsapp_header&limit=1','GET',null,currentUser.access_token);
     waNumber=settings?.[0]?.whatsapp_number||'';
+    if(settings?.[0]?.whatsapp_header) waHeader=settings[0].whatsapp_header;
   }catch(e){}
 
   // Confirm send to client
@@ -1352,11 +1363,7 @@ async function sendReportWhatsApp(){
   const rawDate = currentAssignment?.date_from || currentAssignment?.work_date || '';
   const dateHe = rawDate ? rawDate.split('-').reverse().join('.') : fmtDate(currentAssignment?.work_date);
 
-  const text=`לכבוד הלקוח,
-היום ביקר אצלכם נציג מטעם קמפוס הנדסת תקשורת בע"מ.
-היה לנו עונג לשרת אתכם ואנו מקווים שהשירות עמד בציפיותיכם.
-מצורף דוח עבודה מפורט.
-----------------------------
+  const text=`${waHeader}
 
 דוח עבודה
 
@@ -1621,6 +1628,7 @@ let _matModalItems = [];
 
 async function openMatModal(rowId) {
   currentMatRowId = rowId;
+  _matSelectedIndices = new Set();
   document.getElementById('mat-modal-input').value = '';
   document.getElementById('mat-modal-list').innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray-400)">Загрузка...</div>';
   document.getElementById('mat-search-modal').classList.add('open');
@@ -1634,6 +1642,8 @@ function closeMatModal() {
   currentMatRowId = null;
 }
 
+let _matSelectedIndices = new Set();
+
 function matModalSearch() {
   const q = document.getElementById('mat-modal-input').value.trim().toLowerCase();
   const list = document.getElementById('mat-modal-list');
@@ -1645,22 +1655,40 @@ function matModalSearch() {
     return;
   }
   list.innerHTML = _matModalItems.map((m,i) => `
-    <div class="mat-modal-item" data-idx="${i}" style="-webkit-tap-highlight-color:rgba(67,97,238,0.15)">
+    <label class="mat-modal-item ${_matSelectedIndices.has(i)?'selected':''}" style="cursor:pointer">
+      <input type="checkbox" ${_matSelectedIndices.has(i)?'checked':''} onchange="matToggleItem(${i},this.checked)">
       <span class="mat-modal-item-num">${m.catalog_number}</span>
       <span class="mat-modal-item-name">${m.name}</span>
       <span class="mat-modal-item-unit">${m.unit}</span>
-    </div>`).join('');
-  list.querySelectorAll('.mat-modal-item').forEach(item => {
-    item.addEventListener('touchend', function(e) {
-      e.preventDefault();
-      const m = _matModalItems[parseInt(this.dataset.idx)];
-      if(m) matModalSelect(currentMatRowId, m.name, m.unit, m.catalog_number);
-    });
-    item.addEventListener('click', function() {
-      const m = _matModalItems[parseInt(this.dataset.idx)];
-      if(m) matModalSelect(currentMatRowId, m.name, m.unit, m.catalog_number);
-    });
+    </label>`).join('');
+  updateMatSelectedCount();
+}
+
+function matToggleItem(idx, checked) {
+  if(checked) _matSelectedIndices.add(idx);
+  else _matSelectedIndices.delete(idx);
+  const item = document.querySelector(`.mat-modal-item:nth-child(${Array.from(document.querySelectorAll('.mat-modal-item')).findIndex((el,i)=>i===Array.from(_matSelectedIndices).indexOf(idx))+1})`);
+  updateMatSelectedCount();
+  // Update background
+  document.querySelectorAll('.mat-modal-item').forEach((el, i) => {
+    const input = el.querySelector('input[type=checkbox]');
+    if(input) el.classList.toggle('selected', input.checked);
   });
+}
+
+function updateMatSelectedCount() {
+  const countEl = document.getElementById('mat-selected-count');
+  if(countEl) countEl.textContent = _matSelectedIndices.size;
+}
+
+function matModalConfirm() {
+  if(_matSelectedIndices.size === 0) return;
+  _matSelectedIndices.forEach(idx => {
+    const m = _matModalItems[idx];
+    if(m) addMaterialRow(m.name, '', m.unit);
+  });
+  _matSelectedIndices.clear();
+  closeMatModal();
 }
 
 function matModalSelect(rowId, name, unit, number) {
@@ -1732,6 +1760,9 @@ window.addEventListener('DOMContentLoaded', function() {
       <input type="text" id="mat-modal-input" placeholder="Поиск по номеру или названию..." oninput="matModalSearch()" autocomplete="off">
     </div>
     <div class="mat-modal-list" id="mat-modal-list"></div>
+    <div class="mat-modal-footer">
+      <button class="btn btn-primary" onclick="matModalConfirm()" style="width:100%;padding:14px;font-size:15px" id="mat-modal-confirm-btn">✓ Добавить выбранные (<span id="mat-selected-count">0</span>)</button>
+    </div>
   </div>
 </div>
 
