@@ -87,6 +87,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .menu-card-icon { width: 46px; height: 46px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
 .menu-card.jobs .menu-card-icon { background: #dbeafe; }
 .menu-card.tasks .menu-card-icon { background: #d1fae5; }
+.menu-card.timeoff .menu-card-icon { background: #fef3c7; }
 .menu-card-title { font-size: 16px; font-weight: 600; }
 .menu-card-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
 .menu-card-arrow { font-size: 22px; color: var(--gray-300); margin-left: auto; }
@@ -233,7 +234,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">כניסה למערכת</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.11.001</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.11.004.003.002</div>
     </div>
   </div>
 </div>
@@ -263,9 +264,87 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
       </div>
       <div class="menu-card-arrow">›</div>
     </div>
+    <div class="menu-card timeoff" onclick="openTimeOffScreen()">
+      <div class="menu-card-icon">🏖️</div>
+      <div>
+        <div class="menu-card-title">החופש שלי</div>
+        <div class="menu-card-sub">בקש יום חופש</div>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
   </div>
   <div style="padding:0 16px 32px">
+    <button class="btn btn-outline btn-sm" onclick="showScreen('changepass')" style="margin-bottom:10px;width:100%">🔑 שינוי סיסמה</button>
     <button class="btn btn-ghost btn-sm" onclick="logout()">יציאה מהמערכת</button>
+  </div>
+</div>
+
+
+<!-- CHANGE PASSWORD -->
+<div class="screen" id="screen-changepass">
+  <div class="header">
+    <div><div class="header-title">🔑 שינוי סיסמה</div></div>
+    <button class="back-btn" onclick="showScreen('menu')">חזרה ←</button>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-body">
+        <div id="changepass-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px"></div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">סיסמה נוכחית</label>
+          <input type="password" id="cp-current" placeholder="הסיסמה הנוכחית"
+            style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:16px;font-family:var(--sans);outline:none">
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">סיסמה חדשה</label>
+          <input type="password" id="cp-new" placeholder="מינימום 6 תווים"
+            style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:16px;font-family:var(--sans);outline:none">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">אימות סיסמה חדשה</label>
+          <input type="password" id="cp-confirm" placeholder="חזור על הסיסמה החדשה"
+            style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:16px;font-family:var(--sans);outline:none">
+        </div>
+        <button class="btn btn-primary" id="cp-btn" onclick="changePassword()" style="width:100%;padding:14px;font-size:16px">שמור סיסמה</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- TIME OFF -->
+<div class="screen" id="screen-timeoff">
+  <div class="header">
+    <div><div class="header-title">🏖️ בקשת יום חופש</div></div>
+    <button class="back-btn" onclick="showScreen('menu')">חזרה ←</button>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-body">
+        <div id="timeoff-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">תאריך התחלה</label>
+            <input type="date" id="to-date-from" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">תאריך סיום</label>
+            <input type="date" id="to-date-to" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
+          </div>
+        </div>
+        <div id="to-days-count" style="text-align:center;font-size:13px;color:var(--blue);font-weight:600;margin-bottom:14px;display:none"></div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">סיבה (לא חובה)</label>
+          <input type="text" id="to-reason" placeholder="חופשה, ימי מחלה..."
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)" dir="rtl">
+        </div>
+        <button class="btn btn-primary" id="to-btn" onclick="submitTimeOff()" style="width:100%;padding:14px;font-size:16px">שלח בקשה</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-label">הבקשות שלי</div></div>
+      <div class="card-body" id="timeoff-list"><div style="color:var(--gray-500);font-size:13px">טוען...</div></div>
+    </div>
   </div>
 </div>
 
@@ -637,6 +716,153 @@ async function login(){
   btn.disabled=false;btn.textContent='כניסה למערכת';
 }
 document.getElementById('password-input').addEventListener('keypress',e=>{if(e.key==='Enter')login();});
+
+
+
+async function openTimeOffScreen() {
+  showScreen('timeoff');
+  // Set default dates to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('to-date-from').value = today;
+  document.getElementById('to-date-to').value = today;
+  updateTimeOffDays();
+  loadMyTimeOffRequests();
+}
+
+function updateTimeOffDays() {
+  const from = document.getElementById('to-date-from').value;
+  const to = document.getElementById('to-date-to').value;
+  const countEl = document.getElementById('to-days-count');
+  if(from && to) {
+    const diff = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+    if(diff > 0) {
+      countEl.textContent = diff + ' ימים';
+      countEl.style.display = 'block';
+    } else {
+      countEl.style.display = 'none';
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const fromEl = document.getElementById('to-date-from');
+  const toEl = document.getElementById('to-date-to');
+  if(fromEl) fromEl.addEventListener('change', updateTimeOffDays);
+  if(toEl) toEl.addEventListener('change', updateTimeOffDays);
+});
+
+async function submitTimeOff() {
+  const from = document.getElementById('to-date-from').value;
+  const to = document.getElementById('to-date-to').value;
+  const reason = document.getElementById('to-reason').value.trim();
+  const errEl = document.getElementById('timeoff-error');
+  const btn = document.getElementById('to-btn');
+  errEl.style.display = 'none';
+
+  if(!from || !to) { errEl.textContent='בחר תאריכים'; errEl.style.display='block'; return; }
+  if(to < from) { errEl.textContent='תאריך סיום לא יכול להיות לפני תאריך התחלה'; errEl.style.display='block'; return; }
+
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    await apiDB('time_off_requests', 'POST', {
+      worker_id: currentWorker.id,
+      date_from: from,
+      date_to: to,
+      reason: reason || null,
+      status: 'pending'
+    }, currentUser.access_token);
+    toast('✅ הבקשה נשלחה');
+    document.getElementById('to-reason').value = '';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('to-date-from').value = today;
+    document.getElementById('to-date-to').value = today;
+    updateTimeOffDays();
+    loadMyTimeOffRequests();
+  } catch(e) { errEl.textContent='שגיאה: '+e.message; errEl.style.display='block'; }
+  btn.disabled = false; btn.textContent = 'שלח בקשה';
+}
+
+async function loadMyTimeOffRequests() {
+  const el = document.getElementById('timeoff-list');
+  if(!el) return;
+  try {
+    const data = await apiDB('time_off_requests?select=*&worker_id=eq.'+currentWorker.id+'&order=created_at.desc&limit=20','GET',null,currentUser.access_token);
+    if(!data.length) { el.innerHTML='<div style="color:var(--gray-500);font-size:13px">אין בקשות עדיין</div>'; return; }
+    el.innerHTML = data.map(r => {
+      const from = r.date_from.split('-').reverse().join('.');
+      const to = r.date_to.split('-').reverse().join('.');
+      const days = Math.round((new Date(r.date_to) - new Date(r.date_from)) / 86400000) + 1;
+      const period = from === to ? from : from + ' — ' + to;
+      const statusText = r.status === 'approved' ? '✅ אושר' : r.status === 'rejected' ? '❌ נדחה' : '🟡 ממתין';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100)">
+        <div>
+          <div style="font-size:14px;font-weight:600">${period}</div>
+          <div style="font-size:12px;color:var(--gray-500)">${days} ימים${r.reason?' · '+r.reason:''}</div>
+          ${r.manager_note?'<div style="font-size:11px;color:var(--blue);margin-top:2px">'+r.manager_note+'</div>':''}
+        </div>
+        <div style="font-size:13px;font-weight:600">${statusText}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML='<div style="color:var(--danger);font-size:13px">שגיאה</div>'; }
+}
+
+async function changePassword() {
+  const current = document.getElementById('cp-current').value;
+  const newPass = document.getElementById('cp-new').value;
+  const confirm = document.getElementById('cp-confirm').value;
+  const errEl = document.getElementById('changepass-error');
+  const btn = document.getElementById('cp-btn');
+
+  errEl.style.display = 'none';
+
+  if(!current || !newPass || !confirm) {
+    errEl.textContent = 'מלא את כל השדות'; errEl.style.display = 'block'; return;
+  }
+  if(newPass !== confirm) {
+    errEl.textContent = 'הסיסמאות אינן תואמות'; errEl.style.display = 'block'; return;
+  }
+  if(newPass.length < 6) {
+    errEl.textContent = 'הסיסמה חייבת להכיל לפחות 6 תווים'; errEl.style.display = 'block'; return;
+  }
+
+  btn.disabled = true; btn.textContent = '...';
+
+  try {
+    // Verify current password by re-authenticating
+    const phone = currentWorker.phone || '';
+    const phoneClean = phone.replace(/\D/g,'');
+    const verify = await apiAuth('token?grant_type=password', {
+      email: phoneClean+'@fieldworker.app', password: current
+    });
+    if(!verify.access_token) throw new Error('wrong');
+
+    // Update password via Supabase Auth
+    const r = await fetch(SUPA+'/auth/v1/user', {
+      method: 'PUT',
+      headers: {
+        'apikey': ANON,
+        'Authorization': 'Bearer '+verify.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({password: newPass})
+    });
+    if(!r.ok) throw new Error(await r.text());
+
+    // Update localStorage with new token
+    currentUser = verify;
+    localStorage.setItem('worker_session', JSON.stringify({user: currentUser, worker: currentWorker}));
+
+    toast('✅ הסיסמה שונה בהצלחה');
+    document.getElementById('cp-current').value = '';
+    document.getElementById('cp-new').value = '';
+    document.getElementById('cp-confirm').value = '';
+    showScreen('menu');
+  } catch(e) {
+    errEl.textContent = e.message === 'wrong' ? 'הסיסמה הנוכחית שגויה' : 'הסיסמה הנוכחית שגויה';
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'שמור סיסמה';
+}
 
 function logout(){
   localStorage.removeItem('worker_session');
