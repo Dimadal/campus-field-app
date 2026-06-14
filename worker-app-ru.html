@@ -89,6 +89,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .menu-card.tasks .menu-card-icon { background: #d1fae5; }
 .menu-card.timeoff .menu-card-icon { background: #fef3c7; }
 .menu-card.brigade .menu-card-icon { background: #ede9fe; }
+.menu-card.creatework .menu-card-icon { background: #fce7f3; }
 .menu-card-title { font-size: 16px; font-weight: 600; }
 .menu-card-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
 .menu-card-arrow { font-size: 22px; color: var(--gray-300); margin-left: auto; }
@@ -235,7 +236,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.003.002</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.002.002.003.002</div>
     </div>
   </div>
 </div>
@@ -262,6 +263,14 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
       <div>
         <div class="menu-card-title">Назначения</div>
         <div class="menu-card-sub">Управление заданиями бригады</div>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+    <div class="menu-card creatework" id="menu-card-creatework" style="display:none" onclick="openCreateWork()">
+      <div class="menu-card-icon">🏗️</div>
+      <div>
+        <div class="menu-card-title">Создать работу</div>
+        <div class="menu-card-sub">Работа без назначения техника</div>
       </div>
       <div class="menu-card-arrow">›</div>
     </div>
@@ -320,6 +329,81 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
   </div>
 </div>
 
+
+
+<!-- CREATE WORK (no worker) -->
+<div class="screen" id="screen-creatework">
+  <div class="header">
+    <div><div class="header-title">🏗️ Создать работу</div></div>
+    <button class="back-btn" onclick="showScreen('menu')">← Назад</button>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-body">
+        <div id="cw-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px"></div>
+
+        <!-- Client -->
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">Клиент</label>
+          <div style="position:relative">
+            <button type="button" id="cw-client-btn" onclick="openCustomerModal(function(id,num,name){cwSelectCustomer(num,name,id)})"
+              style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-300);border-radius:var(--radius);font-size:15px;font-family:var(--sans);background:var(--white);color:var(--gray-400);text-align:left;cursor:pointer" >
+              Поиск по номеру или названию...
+            </button>
+          </div>
+          <input type="hidden" id="cw-client-name">
+          <input type="hidden" id="cw-client-number">
+          <input type="hidden" id="cw-client-id">
+          <div id="cw-selected-customer" style="display:none;margin-top:6px;padding:8px 12px;background:#f0fdf4;border-radius:8px;font-size:13px"></div>
+          <button type="button" id="cw-toggle-new-btn" onclick="cwToggleNewCustomer()"
+            style="width:100%;padding:8px;background:none;border:1.5px dashed var(--gray-300);border-radius:var(--radius);font-size:13px;color:var(--gray-500);cursor:pointer;font-family:var(--sans);margin-top:6px">
+            + Создать нового клиента
+          </button>
+          <div id="cw-new-customer-form" style="display:none;margin-top:8px">
+            <input type="text" id="cw-nc-name" placeholder="Название клиента"
+              style="width:100%;padding:10px 14px;border:1.5px solid var(--gray-300);border-radius:var(--radius);font-size:15px;font-family:var(--sans);outline:none" >
+            <button class="btn btn-primary" onclick="cwCreateCustomer()" style="width:100%;margin-top:8px;padding:10px">✅ Создать нового клиента</button>
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">Адрес</label>
+          <input type="text" id="cw-address" placeholder="ул. Герцля 14, Тель-Авив"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)" >
+        </div>
+
+        <!-- Workplace -->
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">Место работ</label>
+          <input type="text" id="cw-workplace" placeholder="Серверная, 3 этаж"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)" >
+        </div>
+
+        <!-- Date -->
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">Дата</label>
+          <input type="date" id="cw-date"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
+        </div>
+
+        <!-- Description -->
+        <div class="form-group" style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">Описание работы (необязательно)</label>
+          <textarea id="cw-desc" placeholder="Что нужно сделать..." rows="3"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white);resize:vertical;font-family:var(--sans)" ></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">Необходимые материалы (необязательно)</label>
+          <textarea id="cw-materials" placeholder="Кабель UTP 20м, коммутатор 8 портов..." rows="3"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white);resize:vertical;font-family:var(--sans)"></textarea>
+        </div>
+        <button class="btn btn-primary" id="cw-btn" onclick="submitCreateWork()" style="width:100%;padding:14px;font-size:16px">🏗️ Создать работу</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- TIME OFF -->
 <div class="screen" id="screen-timeoff">
@@ -736,6 +820,7 @@ async function login(){
     if(currentWorker.is_supervisor){
       document.getElementById('tab-brigade').style.display='flex';
       const brigadeCard=document.getElementById('menu-card-brigade');if(brigadeCard)brigadeCard.style.display='flex';
+      const cwCard=document.getElementById('menu-card-creatework');if(cwCard)cwCard.style.display='flex';
     }
     // Save session to localStorage
     localStorage.setItem('worker_session', JSON.stringify({
@@ -962,6 +1047,97 @@ function switchTab(tab){
   else if(tab==='brigade'){showScreen('brigade');loadBrigade();}
 }
 
+
+function openCreateWork() {
+  ['cw-client-name','cw-client-number','cw-client-id','cw-address','cw-workplace','cw-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('cw-client-btn').textContent='Поиск по номеру или названию...';
+  document.getElementById('cw-client-btn').style.color='var(--gray-400)';
+  document.getElementById('cw-selected-customer').style.display='none';
+  document.getElementById('cw-new-customer-form').style.display='none';
+  document.getElementById('cw-toggle-new-btn').style.display='block';
+  document.getElementById('cw-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('cw-error').style.display='none';
+  apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token).then(d=>{naAllCustomers=d;});
+  showScreen('creatework');
+}
+
+function cwSelectCustomer(number, name, id) {
+  document.getElementById('cw-client-name').value = name;
+  document.getElementById('cw-client-number').value = number;
+  document.getElementById('cw-client-id').value = id||'';
+  const btn = document.getElementById('cw-client-btn');
+  btn.textContent = number+' — '+name;
+  btn.style.color = 'var(--text)';
+  const sel = document.getElementById('cw-selected-customer');
+  sel.style.display='block';
+  sel.innerHTML='✅ Выбран: <strong>'+name+'</strong>';
+  document.getElementById('cw-new-customer-form').style.display='none';
+  document.getElementById('cw-toggle-new-btn').style.display='block';
+}
+
+function cwToggleNewCustomer() {
+  const form = document.getElementById('cw-new-customer-form');
+  const btn = document.getElementById('cw-toggle-new-btn');
+  if(form.style.display==='none') {
+    form.style.display='block'; btn.style.display='none';
+    ['cw-client-name','cw-client-number','cw-client-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    document.getElementById('cw-client-btn').textContent='Поиск по номеру или названию...';
+    document.getElementById('cw-client-btn').style.color='var(--gray-400)';
+    document.getElementById('cw-selected-customer').style.display='none';
+  } else {form.style.display='none';btn.style.display='block';}
+}
+
+async function cwCreateCustomer() {
+  const name = document.getElementById('cw-nc-name').value.trim();
+  if(!name) { toast('Введите название клиента'); return; }
+  try {
+    const existing = await apiDB('customers?select=customer_number&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
+    let maxNum = 0;
+    existing.forEach(c=>{const n=c.customer_number;if(n&&n.startsWith('*')){const num=parseInt(n.slice(1));if(!isNaN(num)&&num>maxNum)maxNum=num;}});
+    const number='*'+String(maxNum+1).padStart(5,'0');
+    const res=await apiDB('customers','POST',{customer_number:number,customer_name:name},currentUser.access_token);
+    const newId=(Array.isArray(res)?res[0]:res)?.id;
+    naAllCustomers=await apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token);
+    cwSelectCustomer(number,name,newId);
+    document.getElementById('cw-nc-name').value='';
+    toast('✅ Клиент создан: '+number+' — '+name);
+  } catch(e) { toast('Ошибка: '+e.message); }
+}
+
+async function submitCreateWork() {
+  const clientName = document.getElementById('cw-client-name').value.trim();
+  const clientNumber = document.getElementById('cw-client-number').value.trim();
+  const address = document.getElementById('cw-address').value.trim();
+  const workplace = document.getElementById('cw-workplace').value.trim();
+  const date = document.getElementById('cw-date').value;
+  const desc = document.getElementById('cw-desc').value.trim();
+  const errEl = document.getElementById('cw-error');
+  const btn = document.getElementById('cw-btn');
+  errEl.style.display='none';
+
+  if(!clientName) { errEl.textContent='Выберите клиента'; errEl.style.display='block'; return; }
+  if(!date) { errEl.textContent='Выберите дату'; errEl.style.display='block'; return; }
+
+  btn.disabled=true; btn.textContent='...';
+  try {
+    const objResult = await apiDB('objects','POST',{
+      name: clientName+(workplace?' — '+workplace:''),
+      address: address||null,
+      work_place: workplace||null,
+      client_name: clientName||null,
+      company: clientName||null,
+      company_phone: clientNumber||null,
+      status: 'active',
+      description: desc||null
+    }, currentUser.access_token);
+    toast('✅ Работа создана');
+    await logActivity('created','object',null,'Создана новая работа бригадиром: '+clientName);
+    showScreen('menu');
+    ['cw-client-name','cw-client-number','cw-client-id','cw-address','cw-workplace','cw-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  } catch(e) { errEl.textContent='Ошибка: '+e.message; errEl.style.display='block'; }
+  btn.disabled=false; btn.textContent='🏗️ Создать работу';
+}
+
 // ==================== BRIGADE ====================
 let brigadeWorkers = [];
 let brigadeAllCustomers = [];
@@ -1162,7 +1338,7 @@ async function openAssignment(id){
   const el=document.getElementById('assignment-content');
   el.innerHTML='<div class="loading-wrap"><div class="spinner"></div></div>';
   try{
-    const assignments=await apiDB('assignments?select=*,objects(*)&id=eq.'+id,'GET',null,currentUser.access_token);
+    const assignments=await apiDB('assignments?select=*,objects(*,required_materials)&id=eq.'+id,'GET',null,currentUser.access_token);
     currentAssignment=assignments[0];
     currentObject=assignments[0]?.objects||{};
     const reports=await apiDB('reports?select=*&assignment_id=eq.'+id+'&order=created_at.desc&limit=1','GET',null,currentUser.access_token);
@@ -1223,6 +1399,7 @@ function renderAssignment(){
   if(obj.contact_name)rows+=`<div class="detail-row"><div class="detail-icon">👤</div><div class="detail-label">Контакт</div><div class="detail-value">${obj.contact_name}${obj.contact_phone?'<br><span style="color:var(--gray-500);font-size:12px">'+obj.contact_phone+'</span>':''}</div></div>`;
   if(obj.work_type)rows+=`<div class="detail-row"><div class="detail-icon">📂</div><div class="detail-label">Тип</div><div class="detail-value">${obj.work_type==='project'?'📋 Проект':'🔧 Обслуживание'}</div></div>`;
 
+  const matsCard=obj.required_materials?`<div class="card" style="border-left:3px solid #f59e0b"><div class="card-header"><div class="card-label">🔧 Необходимые материалы</div></div><div class="card-body" style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:#92400e">${obj.required_materials}</div></div>`:'';
   const descCard=a.description?`<div class="card" style="border-left:3px solid var(--blue)"><div class="card-header"><div class="card-label">Задание от менеджера</div></div><div class="card-body" style="font-size:14px;line-height:1.6">${a.description}</div></div>`:'';
   const bonusCard=a.bonus?`<div class="card" style="border-left:3px solid #0db87e"><div class="card-header"><div class="card-label">🎁 Бонус за работу</div></div><div class="card-body"><div style="font-size:26px;font-weight:700;color:#0db87e">₪${Number(a.bonus).toLocaleString('ru')}</div></div></div>`:'';
 
@@ -1311,6 +1488,7 @@ function renderAssignment(){
 
   el.innerHTML=`
     <div class="card"><div class="card-header"><div class="card-label">Работа</div></div><div class="card-body">${rows||'<div style="color:var(--gray-500)">Нет данных</div>'}</div></div>
+    ${matsCard}
     ${descCard}
     ${bonusCard}
     ${timeSection}
@@ -2043,6 +2221,7 @@ window.addEventListener('DOMContentLoaded', async function() {
     if(currentWorker.is_supervisor) {
       document.getElementById('tab-brigade').style.display='flex';
       const brigadeCard=document.getElementById('menu-card-brigade');if(brigadeCard)brigadeCard.style.display='flex';
+      const cwCard=document.getElementById('menu-card-creatework');if(cwCard)cwCard.style.display='flex';
     }
     showScreen('menu');
   } catch(e) {
