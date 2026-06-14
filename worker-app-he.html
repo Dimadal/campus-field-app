@@ -88,6 +88,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .menu-card.jobs .menu-card-icon { background: #dbeafe; }
 .menu-card.tasks .menu-card-icon { background: #d1fae5; }
 .menu-card.timeoff .menu-card-icon { background: #fef3c7; }
+.menu-card.brigade .menu-card-icon { background: #ede9fe; }
 .menu-card-title { font-size: 16px; font-weight: 600; }
 .menu-card-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
 .menu-card-arrow { font-size: 22px; color: var(--gray-300); margin-left: auto; }
@@ -234,7 +235,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">כניסה למערכת</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.11.004.003.002</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.003.002</div>
     </div>
   </div>
 </div>
@@ -253,6 +254,14 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
       <div>
         <div class="menu-card-title">העבודות שלי</div>
         <div class="menu-card-sub">רשימת המשימות שהוקצו</div>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+    <div class="menu-card brigade" id="menu-card-brigade" style="display:none" onclick="switchTab('brigade')">
+      <div class="menu-card-icon">👷</div>
+      <div>
+        <div class="menu-card-title">שיבוצים</div>
+        <div class="menu-card-sub">ניהול שיבוצי הצוות</div>
       </div>
       <div class="menu-card-arrow">›</div>
     </div>
@@ -333,10 +342,38 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
           </div>
         </div>
         <div id="to-days-count" style="text-align:center;font-size:13px;color:var(--blue);font-weight:600;margin-bottom:14px;display:none"></div>
-        <div style="margin-bottom:20px">
+        <div style="margin-bottom:14px">
           <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">סיבה (לא חובה)</label>
           <input type="text" id="to-reason" placeholder="חופשה, ימי מחלה..."
             style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)" dir="rtl">
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:8px">סוג יום</label>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button type="button" id="to-type-full" onclick="setDayType('full')"
+              style="flex:1;padding:10px;border:2px solid #4361ee;border-radius:10px;background:#4361ee;color:white;font-size:14px;font-weight:600;cursor:pointer">☀️ יום שלם</button>
+            <button type="button" id="to-type-half" onclick="setDayType('half')"
+              style="flex:1;padding:10px;border:2px solid var(--gray-300);border-radius:10px;background:white;color:var(--gray-600);font-size:14px;font-weight:600;cursor:pointer">🕐 חצי יום</button>
+          </div>
+          <div id="to-half-time" style="display:none">
+            <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">עד השעה</label>
+            <input type="time" id="to-until" value="14:00"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
+          </div>
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:8px">סוג יום</label>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button type="button" id="to-type-full" onclick="setDayType('full')"
+              style="flex:1;padding:10px;border:2px solid #4361ee;border-radius:10px;background:#4361ee;color:white;font-size:14px;font-weight:600;cursor:pointer">☀️ יום שלם</button>
+            <button type="button" id="to-type-half" onclick="setDayType('half')"
+              style="flex:1;padding:10px;border:2px solid var(--gray-300);border-radius:10px;background:white;color:var(--gray-600);font-size:14px;font-weight:600;cursor:pointer">🕐 חצי יום</button>
+          </div>
+          <div id="to-half-time" style="display:none">
+            <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">עד השעה</label>
+            <input type="time" id="to-until" value="14:00"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
+          </div>
         </div>
         <button class="btn btn-primary" id="to-btn" onclick="submitTimeOff()" style="width:100%;padding:14px;font-size:16px">שלח בקשה</button>
       </div>
@@ -537,7 +574,8 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 <!-- BRIGADE SCREEN -->
 <div class="screen" id="screen-brigade">
   <div class="header">
-    <div><div class="header-title">הצוות</div></div>
+    <div><div class="header-title">שיבוצים</div></div>
+    <button class="back-btn" onclick="showScreen('menu')">חזרה ←</button>
   </div>
   <div class="content pb-nav" id="brigade-content">
     <div class="loading-wrap"><div class="spinner"></div>טוען...</div>
@@ -622,7 +660,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
     <button class="nav-tab" id="tab-newtask" onclick="switchTab('newtask')">
       <span class="ti">➕</span><span>צור</span>
     </button>
-    <button class="nav-tab" id="tab-brigade" onclick="switchTab('brigade')" style="display:none">
+    <button class="nav-tab" id="tab-brigade" onclick="switchTab('brigade')" style="display:none;visibility:hidden">
       <span class="ti">👷</span><span>צוות</span>
     </button>
   </div>
@@ -710,6 +748,7 @@ async function login(){
     document.getElementById('mytasks-name').textContent=displayName;
     if(currentWorker.is_supervisor){
       document.getElementById('tab-brigade').style.display='flex';
+      const brigadeCard=document.getElementById('menu-card-brigade');if(brigadeCard)brigadeCard.style.display='flex';
     }
     showScreen('menu');
   }catch(e){err.textContent='מספר טלפון או סיסמה שגויים';err.classList.add('show');}
@@ -721,12 +760,20 @@ document.getElementById('password-input').addEventListener('keypress',e=>{if(e.k
 
 async function openTimeOffScreen() {
   showScreen('timeoff');
-  // Set default dates to today
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('to-date-from').value = today;
-  document.getElementById('to-date-to').value = today;
+  updateTimeOffMinDate();
   updateTimeOffDays();
   loadMyTimeOffRequests();
+}
+
+
+function updateTimeOffMinDate() {
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() + 7);
+  const minStr = minDate.toISOString().split('T')[0];
+  const fromEl = document.getElementById('to-date-from');
+  const toEl = document.getElementById('to-date-to');
+  if(fromEl) { fromEl.min = minStr; if(!fromEl.value || fromEl.value < minStr) fromEl.value = minStr; }
+  if(toEl) { toEl.min = minStr; if(!toEl.value || toEl.value < minStr) toEl.value = minStr; }
 }
 
 function updateTimeOffDays() {
@@ -751,6 +798,22 @@ document.addEventListener('DOMContentLoaded', function() {
   if(toEl) toEl.addEventListener('change', updateTimeOffDays);
 });
 
+
+function setDayType(type) {
+  const fullBtn = document.getElementById('to-type-full');
+  const halfBtn = document.getElementById('to-type-half');
+  const halfTime = document.getElementById('to-half-time');
+  if(type === 'half') {
+    fullBtn.style.background = 'white'; fullBtn.style.color = 'var(--gray-600)'; fullBtn.style.borderColor = 'var(--gray-300)';
+    halfBtn.style.background = '#4361ee'; halfBtn.style.color = 'white'; halfBtn.style.borderColor = '#4361ee';
+    halfTime.style.display = 'block';
+  } else {
+    fullBtn.style.background = '#4361ee'; fullBtn.style.color = 'white'; fullBtn.style.borderColor = '#4361ee';
+    halfBtn.style.background = 'white'; halfBtn.style.color = 'var(--gray-600)'; halfBtn.style.borderColor = 'var(--gray-300)';
+    halfTime.style.display = 'none';
+  }
+}
+
 async function submitTimeOff() {
   const from = document.getElementById('to-date-from').value;
   const to = document.getElementById('to-date-to').value;
@@ -764,15 +827,20 @@ async function submitTimeOff() {
 
   btn.disabled = true; btn.textContent = '...';
   try {
+    const isHalf = document.getElementById('to-type-half')?.style.background === 'rgb(67, 97, 238)';
+    const until = isHalf ? document.getElementById('to-until')?.value : null;
     await apiDB('time_off_requests', 'POST', {
       worker_id: currentWorker.id,
       date_from: from,
       date_to: to,
       reason: reason || null,
-      status: 'pending'
+      status: 'pending',
+      is_half_day: isHalf,
+      half_day_until: until || null
     }, currentUser.access_token);
     toast('✅ הבקשה נשלחה');
     document.getElementById('to-reason').value = '';
+    if(typeof setDayType==='function') setDayType('full');
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('to-date-from').value = today;
     document.getElementById('to-date-to').value = today;
@@ -797,7 +865,7 @@ async function loadMyTimeOffRequests() {
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100)">
         <div>
           <div style="font-size:14px;font-weight:600">${period}</div>
-          <div style="font-size:12px;color:var(--gray-500)">${days} ימים${r.reason?' · '+r.reason:''}</div>
+          <div style="font-size:12px;color:var(--gray-500)">${r.is_half_day ? '🕐 חצי יום' : days+' ימים'}${r.reason?' · '+r.reason:''}${r.is_half_day&&r.half_day_until?' עד '+r.half_day_until.slice(0,5):''}</div>
           ${r.manager_note?'<div style="font-size:11px;color:var(--blue);margin-top:2px">'+r.manager_note+'</div>':''}
         </div>
         <div style="font-size:13px;font-weight:600">${statusText}</div>
@@ -805,6 +873,116 @@ async function loadMyTimeOffRequests() {
     }).join('');
   } catch(e) { el.innerHTML='<div style="color:var(--danger);font-size:13px">שגיאה</div>'; }
 }
+
+// ==================== BRIGADE ====================
+let brigadeWorkers = [];
+let brigadeAllCustomers = [];
+
+async function loadBrigade() {
+  const el = document.getElementById('brigade-content');
+  if(!el) return;
+  el.innerHTML = '<div class="loading-wrap"><div class="spinner"></div>טוען...</div>';
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    brigadeWorkers = await apiDB('workers?select=*&order=full_name_he.asc', 'GET', null, currentUser.access_token);
+    const assignments = await apiDB('assignments?select=*,objects(name,address)&work_date=eq.'+today+'&order=created_at.desc','GET',null,currentUser.access_token);
+    const byWorker = {};
+    assignments.forEach(a => { if(!byWorker[a.worker_id])byWorker[a.worker_id]=[]; byWorker[a.worker_id].push(a); });
+    let html = `<button class="btn btn-primary" style="margin-bottom:16px" onclick="openCreateForWorker()">➕ צור משימה לטכנאי</button>`;
+    html += `<div class="section-label">היום, ${new Date().toLocaleDateString('he',{day:'numeric',month:'long'})}</div>`;
+    brigadeWorkers.forEach(w => {
+      const wA = byWorker[w.id]||[];
+      const name = w.full_name_he||w.full_name||'—';
+      html += `<div class="card" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;${wA.length?'border-bottom:1px solid var(--gray-200)':''}">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">${(name||'?')[0]}</div>
+            <div><div style="font-weight:600;font-size:14px">${name}</div><div style="font-size:11px;color:var(--gray-500)">${w.role||''}</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:${wA.length?'var(--green)':'var(--gray-300)'};font-weight:600">${wA.length?wA.length+' משימות':'פנוי'}</span>
+            <button class="btn btn-ghost btn-sm" onclick="openCreateForWorker('${w.id}')">+ משימה</button>
+          </div>
+        </div>
+        ${wA.map(a=>`<div style="padding:10px 14px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between">
+          <div><div style="font-size:13px;font-weight:500">${a.objects?.name||'—'}</div><div style="font-size:11px;color:var(--gray-500)">${a.objects?.address||''}</div></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            ${a.bonus?`<span style="font-weight:700;color:#0db87e;font-size:13px">₪${Number(a.bonus).toLocaleString('he')}</span>`:''}
+            <span class="badge badge-${a.status==='done'?'green':a.status==='active'?'blue':'gray'}">${a.status==='done'?'הושלם':a.status==='active'?'בביצוע':'ממתין'}</span>
+            <button class="btn btn-ghost btn-sm" onclick="brigadeSetBonus('${a.id}',${a.bonus||0})" style="padding:3px 8px">🎁</button>
+            <button class="btn btn-ghost btn-sm" onclick="brigadeDeleteAssignment('${a.id}')" style="color:var(--red);padding:3px 8px">✕</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch(e) { el.innerHTML = `<div class="empty-wrap"><div class="empty-title">שגיאה</div><div class="empty-sub">${e.message}</div></div>`; }
+}
+
+async function brigadeDeleteAssignment(id) {
+  if(!confirm('מחק משימה? היא תועבר לארכיון.')) return;
+  try {
+    const items = await apiDB('assignments?id=eq.'+id+'&select=*,workers(full_name_he,full_name),objects(name)','GET',null,currentUser.access_token);
+    const a = items[0];
+    if(a) await apiDB('archive','POST',{type:'assignment',data:{...a,_display:{worker:a.workers?.full_name_he||a.workers?.full_name||'—',object:a.objects?.name||'—'}},deleted_by:currentWorker.full_name_he||currentWorker.full_name||'ראש צוות'},currentUser.access_token);
+    await apiDB('assignments?id=eq.'+id,'DELETE',null,currentUser.access_token);
+    toast('✓ משימה הועברה לארכיון');
+    loadBrigade();
+  } catch(e) { toast('שגיאה: '+e.message); }
+}
+
+async function brigadeSetBonus(id, current) {
+  const val = prompt('הזן בונוס ב-₪:', current||'');
+  if(val === null) return;
+  const bonus = parseFloat(val);
+  try {
+    await apiDB('assignments?id=eq.'+id,'PATCH',{bonus:(!isNaN(bonus)&&bonus>0)?bonus:null},currentUser.access_token);
+    toast(bonus>0?`✓ בונוס הוגדר: ₪${bonus}`:'✓ בונוס הוסר');
+    loadBrigade();
+  } catch(e) { toast('שגיאה: '+e.message); }
+}
+
+function openCreateForWorker(workerId) {
+  const sel = document.getElementById('cfw-worker');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— בחר טכנאי —</option>'+brigadeWorkers.map(w=>`<option value="${w.id}"${w.id===workerId?' selected':''}>${w.full_name_he||w.full_name||'—'}${w.role?' ('+w.role+')':''}</option>`).join('');
+  ['cfw-client-name','cfw-client-number','cfw-client-id','cfw-address','cfw-workplace','cfw-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const cfwBtn=document.getElementById('cfw-client-btn');
+  if(cfwBtn){cfwBtn.textContent='חיפוש לפי מספר או שם...';cfwBtn.style.color='var(--gray-400)';}
+  const sel2=document.getElementById('cfw-selected-customer');if(sel2)sel2.style.display='none';
+  document.getElementById('cfw-new-customer-form').style.display='none';
+  document.getElementById('cfw-toggle-new-btn').style.display='block';
+  document.getElementById('cfw-date').value=new Date().toISOString().split('T')[0];
+  apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token).then(d=>{brigadeAllCustomers=d;naAllCustomers=d;});
+  showScreen('create-for-worker');
+}
+
+function cfwSearchCustomers() {}
+
+function cfwSelectCustomer(number, name, id) {
+  document.getElementById('cfw-client-id').value=id||'';
+  document.getElementById('cfw-client-name').value=name;
+  document.getElementById('cfw-client-number').value=number;
+  const cfwBtn=document.getElementById('cfw-client-btn');
+  if(cfwBtn){cfwBtn.textContent=number+' — '+name;cfwBtn.style.color='var(--text)';}
+  const dd=document.getElementById('cfw-client-dropdown');if(dd)dd.style.display='none';
+  const sel=document.getElementById('cfw-selected-customer');
+  if(sel){sel.style.display='block';sel.innerHTML='✅ נבחר: <strong>'+name+'</strong> · <span style="font-family:var(--mono);font-size:12px">'+number+'</span>';}
+  document.getElementById('cfw-new-customer-form').style.display='none';
+  document.getElementById('cfw-toggle-new-btn').style.display='block';
+}
+
+function cfwToggleNewCustomer(){
+  const form=document.getElementById('cfw-new-customer-form');
+  const btn=document.getElementById('cfw-toggle-new-btn');
+  if(form.style.display==='none'){
+    form.style.display='block';btn.style.display='none';
+    ['cfw-client-name','cfw-client-number','cfw-client-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const cfwBtn=document.getElementById('cfw-client-btn');if(cfwBtn){cfwBtn.textContent='חיפוש לפי מספר או שם...';cfwBtn.style.color='var(--gray-400)';}
+    const sel=document.getElementById('cfw-selected-customer');if(sel)sel.style.display='none';
+  } else {form.style.display='none';btn.style.display='block';}
+}
+// ==================== END BRIGADE ====================
 
 async function changePassword() {
   const current = document.getElementById('cp-current').value;
@@ -1795,6 +1973,7 @@ window.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('mytasks-name').textContent = displayName;
     if(currentWorker.is_supervisor) {
       document.getElementById('tab-brigade').style.display='flex';
+      const brigadeCard=document.getElementById('menu-card-brigade');if(brigadeCard)brigadeCard.style.display='flex';
     }
     showScreen('menu');
   } catch(e) {

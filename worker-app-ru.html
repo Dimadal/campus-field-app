@@ -88,6 +88,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 .menu-card.jobs .menu-card-icon { background: #dbeafe; }
 .menu-card.tasks .menu-card-icon { background: #d1fae5; }
 .menu-card.timeoff .menu-card-icon { background: #fef3c7; }
+.menu-card.brigade .menu-card-icon { background: #ede9fe; }
 .menu-card-title { font-size: 16px; font-weight: 600; }
 .menu-card-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
 .menu-card-arrow { font-size: 22px; color: var(--gray-300); margin-left: auto; }
@@ -234,7 +235,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.11.004.003.002</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.003.002</div>
     </div>
   </div>
 </div>
@@ -253,6 +254,14 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
       <div>
         <div class="menu-card-title">Мои работы</div>
         <div class="menu-card-sub">Список назначенных заданий</div>
+      </div>
+      <div class="menu-card-arrow">›</div>
+    </div>
+    <div class="menu-card brigade" id="menu-card-brigade" style="display:none" onclick="switchTab('brigade')">
+      <div class="menu-card-icon">👷</div>
+      <div>
+        <div class="menu-card-title">Назначения</div>
+        <div class="menu-card-sub">Управление заданиями бригады</div>
       </div>
       <div class="menu-card-arrow">›</div>
     </div>
@@ -337,6 +346,20 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
           <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">Причина (необязательно)</label>
           <input type="text" id="to-reason" placeholder="Отпуск, личные дела..."
             style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)" >
+        </div>
+        <div style="margin-bottom:20px">
+          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:8px">Тип дня</label>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button type="button" id="to-type-full" onclick="setDayType('full')"
+              style="flex:1;padding:10px;border:2px solid #4361ee;border-radius:10px;background:#4361ee;color:white;font-size:14px;font-weight:600;cursor:pointer">☀️ Весь день</button>
+            <button type="button" id="to-type-half" onclick="setDayType('half')"
+              style="flex:1;padding:10px;border:2px solid var(--gray-300);border-radius:10px;background:white;color:var(--gray-600);font-size:14px;font-weight:600;cursor:pointer">🕐 Полдня</button>
+          </div>
+          <div id="to-half-time" style="display:none">
+            <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">До времени</label>
+            <input type="time" id="to-until" value="14:00"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
+          </div>
         </div>
         <button class="btn btn-primary" id="to-btn" onclick="submitTimeOff()" style="width:100%;padding:14px;font-size:16px">Отправить запрос</button>
       </div>
@@ -537,7 +560,8 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
 <!-- BRIGADE SCREEN -->
 <div class="screen" id="screen-brigade">
   <div class="header">
-    <div><div class="header-title">Бригада</div></div>
+    <div><div class="header-title">Назначения</div></div>
+    <button class="back-btn" onclick="showScreen('menu')">← Назад</button>
   </div>
   <div class="content pb-nav" id="brigade-content">
     <div class="loading-wrap"><div class="spinner"></div>Загрузка...</div>
@@ -622,7 +646,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
     <button class="nav-tab" id="tab-newtask" onclick="switchTab('newtask')">
       <span class="ti">➕</span><span>Создать</span>
     </button>
-    <button class="nav-tab" id="tab-brigade" onclick="switchTab('brigade')" style="display:none">
+    <button class="nav-tab" id="tab-brigade" onclick="switchTab('brigade')" style="display:none;visibility:hidden">
       <span class="ti">👷</span><span>Бригада</span>
     </button>
   </div>
@@ -711,6 +735,7 @@ async function login(){
     // Show brigade tab for supervisors
     if(currentWorker.is_supervisor){
       document.getElementById('tab-brigade').style.display='flex';
+      const brigadeCard=document.getElementById('menu-card-brigade');if(brigadeCard)brigadeCard.style.display='flex';
     }
     // Save session to localStorage
     localStorage.setItem('worker_session', JSON.stringify({
@@ -727,12 +752,20 @@ document.getElementById('password-input').addEventListener('keypress',e=>{if(e.k
 
 async function openTimeOffScreen() {
   showScreen('timeoff');
-  // Set default dates to today
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('to-date-from').value = today;
-  document.getElementById('to-date-to').value = today;
+  updateTimeOffMinDate();
   updateTimeOffDays();
   loadMyTimeOffRequests();
+}
+
+
+function updateTimeOffMinDate() {
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() + 7);
+  const minStr = minDate.toISOString().split('T')[0];
+  const fromEl = document.getElementById('to-date-from');
+  const toEl = document.getElementById('to-date-to');
+  if(fromEl) { fromEl.min = minStr; if(!fromEl.value || fromEl.value < minStr) fromEl.value = minStr; }
+  if(toEl) { toEl.min = minStr; if(!toEl.value || toEl.value < minStr) toEl.value = minStr; }
 }
 
 function updateTimeOffDays() {
@@ -757,6 +790,22 @@ document.addEventListener('DOMContentLoaded', function() {
   if(toEl) toEl.addEventListener('change', updateTimeOffDays);
 });
 
+
+function setDayType(type) {
+  const fullBtn = document.getElementById('to-type-full');
+  const halfBtn = document.getElementById('to-type-half');
+  const halfTime = document.getElementById('to-half-time');
+  if(type === 'half') {
+    fullBtn.style.background = 'white'; fullBtn.style.color = 'var(--gray-600)'; fullBtn.style.borderColor = 'var(--gray-300)';
+    halfBtn.style.background = '#4361ee'; halfBtn.style.color = 'white'; halfBtn.style.borderColor = '#4361ee';
+    halfTime.style.display = 'block';
+  } else {
+    fullBtn.style.background = '#4361ee'; fullBtn.style.color = 'white'; fullBtn.style.borderColor = '#4361ee';
+    halfBtn.style.background = 'white'; halfBtn.style.color = 'var(--gray-600)'; halfBtn.style.borderColor = 'var(--gray-300)';
+    halfTime.style.display = 'none';
+  }
+}
+
 async function submitTimeOff() {
   const from = document.getElementById('to-date-from').value;
   const to = document.getElementById('to-date-to').value;
@@ -770,15 +819,20 @@ async function submitTimeOff() {
 
   btn.disabled = true; btn.textContent = '...';
   try {
+    const isHalf = document.getElementById('to-type-half')?.style.background === 'rgb(67, 97, 238)';
+    const until = isHalf ? document.getElementById('to-until')?.value : null;
     await apiDB('time_off_requests', 'POST', {
       worker_id: currentWorker.id,
       date_from: from,
       date_to: to,
       reason: reason || null,
-      status: 'pending'
+      status: 'pending',
+      is_half_day: isHalf,
+      half_day_until: until || null
     }, currentUser.access_token);
     toast('✅ Запрос отправлен');
     document.getElementById('to-reason').value = '';
+    setDayType('full');
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('to-date-from').value = today;
     document.getElementById('to-date-to').value = today;
@@ -799,11 +853,12 @@ async function loadMyTimeOffRequests() {
       const to = r.date_to.split('-').reverse().join('.');
       const days = Math.round((new Date(r.date_to) - new Date(r.date_from)) / 86400000) + 1;
       const period = from === to ? from : from + ' — ' + to;
+      const halfLabel = r.is_half_day ? ' 🕐 עד ' + (r.half_day_until ? r.half_day_until.slice(0,5) : '') : '';
       const statusText = r.status === 'approved' ? '✅ Одобрено' : r.status === 'rejected' ? '❌ Отклонено' : '🟡 Ожидает';
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100)">
         <div>
           <div style="font-size:14px;font-weight:600">${period}</div>
-          <div style="font-size:12px;color:var(--gray-500)">${days} дн.${r.reason?' · '+r.reason:''}</div>
+          <div style="font-size:12px;color:var(--gray-500)">${r.is_half_day ? '🕐 Полдня' : days+' дн.'}${r.reason?' · '+r.reason:''}${r.is_half_day&&r.half_day_until?' до '+r.half_day_until.slice(0,5):''}</div>
           ${r.manager_note?'<div style="font-size:11px;color:var(--blue);margin-top:2px">'+r.manager_note+'</div>':''}
         </div>
         <div style="font-size:13px;font-weight:600">${statusText}</div>
@@ -982,36 +1037,33 @@ async function brigadeSetBonus(id, current) {
 function openCreateForWorker(workerId) {
   const sel = document.getElementById('cfw-worker');
   sel.innerHTML = '<option value="">— Выберите техника —</option>'+brigadeWorkers.map(w=>`<option value="${w.id}"${w.id===workerId?' selected':''}>${w.full_name||'—'}${w.role?' ('+w.role+')':''}</option>`).join('');
-  ['cfw-client-search','cfw-client-name','cfw-client-number','cfw-address','cfw-workplace','cfw-desc'].forEach(id=>{document.getElementById(id).value='';});
+  ['cfw-client-name','cfw-client-number','cfw-client-id','cfw-address','cfw-workplace','cfw-desc'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  const cfwBtn=document.getElementById('cfw-client-btn');
+  if(cfwBtn){cfwBtn.textContent='Поиск по номеру или названию...';cfwBtn.style.color='var(--gray-400)';}
   document.getElementById('cfw-selected-customer').style.display='none';
   document.getElementById('cfw-new-customer-form').style.display='none';
   document.getElementById('cfw-toggle-new-btn').style.display='block';
   document.getElementById('cfw-date').value=new Date().toISOString().split('T')[0];
-  apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token).then(d=>{brigadeAllCustomers=d;});
+  apiDB('customers?select=*&order=customer_number.asc&limit=1000','GET',null,currentUser.access_token).then(d=>{brigadeAllCustomers=d;naAllCustomers=d;});
   showScreen('create-for-worker');
 }
 
 function cfwSearchCustomers() {
-  const q=''; // cfw-client-search replaced by modal button
+  // Replaced by modal - no-op
+}
+
+function cfwSelectCustomer(number, name, id) {
+  document.getElementById('cfw-client-id').value = id||'';
+  document.getElementById('cfw-client-name').value = name;
+  document.getElementById('cfw-client-number').value = number;
+  const cfwBtn=document.getElementById('cfw-client-btn');
+  if(cfwBtn){cfwBtn.textContent=number+' — '+name;cfwBtn.style.color='var(--text)';}
   const dd=document.getElementById('cfw-client-dropdown');
-  if(!q){dd.style.display='none';return;}
-  const matches=brigadeAllCustomers.filter(c=>(c.customer_number||'').toLowerCase().includes(q)||(c.customer_name||'').toLowerCase().includes(q)).slice(0,20);
-  if(!matches.length){dd.style.display='none';return;}
-  dd.style.display='block';
-  dd.innerHTML=matches.map(c=>`
-    <button
-      onmousedown="event.preventDefault();cfwSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')"
-      ontouchstart="event.preventDefault();cfwSelectCustomer('${c.customer_number}','${c.customer_name.replace(/'/g,"\\'")}')"
-      style="display:block;width:100%;padding:14px 16px;font-size:16px;border:none;border-bottom:1px solid #e5e7eb;background:white;text-align:left;font-family:var(--sans);cursor:pointer">
-      <span style="font-family:monospace;color:#6b7280;font-size:12px">${c.customer_number}</span>
-      <span style="margin-left:8px;font-weight:500;color:#111">${c.customer_name}</span>
-    </button>`).join('');
-  document.getElementById('cfw-client-id').value=id||'';
-  const cfwBtn=document.getElementById('cfw-client-btn');if(cfwBtn){cfwBtn.textContent=number+' — '+name;cfwBtn.style.color='var(--text)';}
-  document.getElementById('cfw-client-dropdown').style.display='none';
+  if(dd) dd.style.display='none';
   const sel=document.getElementById('cfw-selected-customer');
-  sel.style.display='block';
-  sel.innerHTML='✅ Выбран: <strong>'+name+'</strong> · <span style="font-family:var(--mono);font-size:12px">'+number+'</span>';
+  if(sel){sel.style.display='block';sel.innerHTML='✅ Выбран: <strong>'+name+'</strong> · <span style="font-family:var(--mono);font-size:12px">'+number+'</span>';}
   document.getElementById('cfw-new-customer-form').style.display='none';
   document.getElementById('cfw-toggle-new-btn').style.display='block';
 }
@@ -1019,8 +1071,13 @@ function cfwSearchCustomers() {
 function cfwToggleNewCustomer(){
   const form=document.getElementById('cfw-new-customer-form');
   const btn=document.getElementById('cfw-toggle-new-btn');
-  if(form.style.display==='none'){form.style.display='block';btn.style.display='none';['cfw-client-name','cfw-client-number','cfw-client-search'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('cfw-selected-customer').style.display='none';}
-  else{form.style.display='none';btn.style.display='block';}
+  if(form.style.display==='none'){
+    form.style.display='block';btn.style.display='none';
+    ['cfw-client-name','cfw-client-number','cfw-client-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const cfwBtn=document.getElementById('cfw-client-btn');
+    if(cfwBtn){cfwBtn.textContent='Поиск по номеру или названию...';cfwBtn.style.color='var(--gray-400)';}
+    document.getElementById('cfw-selected-customer').style.display='none';
+  } else {form.style.display='none';btn.style.display='block';}
 }
 
 async function cfwCreateCustomer(){
@@ -1985,6 +2042,7 @@ window.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('mytasks-name').textContent = displayName;
     if(currentWorker.is_supervisor) {
       document.getElementById('tab-brigade').style.display='flex';
+      const brigadeCard=document.getElementById('menu-card-brigade');if(brigadeCard)brigadeCard.style.display='flex';
     }
     showScreen('menu');
   } catch(e) {
