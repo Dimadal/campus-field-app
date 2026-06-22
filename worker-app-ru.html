@@ -236,7 +236,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.002.002.003.002</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.005</div>
     </div>
   </div>
 </div>
@@ -898,6 +898,16 @@ async function submitTimeOff() {
   const errEl = document.getElementById('timeoff-error');
   const btn = document.getElementById('to-btn');
   errEl.style.display = 'none';
+
+  // 7-day minimum notice validation
+  const todayCheck = new Date(); todayCheck.setHours(0,0,0,0);
+  const fromDateCheck = new Date(from); fromDateCheck.setHours(0,0,0,0);
+  const diffDays = Math.round((fromDateCheck - todayCheck) / 86400000);
+  if(diffDays < 7) {
+    errEl.textContent = 'Запрос можно подать не позднее чем за 7 дней';
+    errEl.style.display = 'block';
+    return;
+  }
 
   if(!from || !to) { errEl.textContent='Выберите даты'; errEl.style.display='block'; return; }
   if(to < from) { errEl.textContent='Дата окончания не может быть раньше начала'; errEl.style.display='block'; return; }
