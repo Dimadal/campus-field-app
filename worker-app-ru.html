@@ -236,7 +236,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.005</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.010</div>
     </div>
   </div>
 </div>
@@ -1053,7 +1053,7 @@ function switchTab(tab){
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='assignments'){showScreen('home');loadAssignments();}
   else if(tab==='mytasks'){showScreen('mytasks');loadMyTasks();}
-  else if(tab==='newtask'){showScreen('newtask');loadObjectsForSelect();naLoadCustomers();document.getElementById('na-date').value=new Date().toISOString().split('T')[0];}
+  else if(tab==='newtask'){showScreen('newtask');naLoadCustomers();document.getElementById('na-date').value=new Date().toISOString().split('T')[0];}
   else if(tab==='brigade'){showScreen('brigade');loadBrigade();}
 }
 
