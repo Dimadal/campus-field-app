@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Communications — Ссылки</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #f3f4f6;
+    color: #1a1d2e;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .container {
+    max-width: 480px;
+    width: 100%;
+  }
+  .logo {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .logo img {
+    height: 56px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 28px;
+  }
+  .link-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s;
+  }
+  .link-card:hover {
+    border-color: #4361ee;
+    box-shadow: 0 4px 12px rgba(67,97,238,0.12);
+    transform: translateY(-1px);
+  }
+  .link-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .link-icon.panel { background: #e0e7ff; }
+  .link-icon.worker { background: #d1fae5; }
+  .link-icon.manager { background: #fef3c7; }
+  .link-icon.sign { background: #fce7f3; }
+  .link-text { flex: 1; min-width: 0; }
+  .link-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .link-sub {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+  .link-arrow {
+    color: #9ca3af;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 24px 0 10px;
+    padding-left: 4px;
+  }
+  .section-label:first-of-type { margin-top: 4px; }
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 28px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <img src="https://i.imgur.com/2yYxF6r.png" onerror="this.style.display='none'" alt="Campus">
+  </div>
+  <h1>Campus Communications</h1>
+  <div class="subtitle">Все ссылки системы учёта выполненных работ</div>
+
+  <div class="section-label">Панель менеджера</div>
+  <a class="link-card" href="https://app.cmps.co.il/panel.html">
+    <div class="link-icon panel">🖥️</div>
+    <div class="link-text">
+      <div class="link-title">Панель менеджера (RU)</div>
+      <div class="link-sub">Назначения, отчёты, статистика</div>
+    </div>
+    <div class="link-arrow">›</div>
+  </a>
+  <a class="link-card" href="https://app.cmps.co.il/panel-he.html">
+    <div class="link-icon panel">🖥️</div>
+    <div class="link-text">
+      <div class="link-title">Панель менеджера (HE)</div>
+      <div class="link-sub">פאנל מנהל בעברית</div>
+    </div>
+    <div class="link-arrow">›</div>
+  </a>
+
+  <div class="section-label">Приложение техника</div>
+  <a class="link-card" href="https://app.cmps.co.il/worker-app-ru.html">
+    <div class="link-icon worker">👷</div>
+    <div class="link-text">
+      <div class="link-title">Приложение техника (RU)</div>
+      <div class="link-sub">Мои работы, отчёты, выходной</div>
+    </div>
+    <div class="link-arrow">›</div>
+  </a>
+  <a class="link-card" href="https://app.cmps.co.il/worker-app-he.html">
+    <div class="link-icon worker">👷</div>
+    <div class="link-text">
+      <div class="link-title">Приложение техника (HE)</div>
+      <div class="link-sub">אפליקציית טכנאי בעברית</div>
+    </div>
+    <div class="link-arrow">›</div>
+  </a>
+
+  <div class="section-label">Прочее</div>
+  <a class="link-card" href="https://app.cmps.co.il/manager-app.html">
+    <div class="link-icon manager">📱</div>
+    <div class="link-text">
+      <div class="link-title">Приложение менеджера</div>
+      <div class="link-sub">Мобильная версия для менеджера</div>
+    </div>
+    <div class="link-arrow">›</div>
+  </a>
+  <a class="link-card" href="https://app.cmps.co.il/sign.html">
+    <div class="link-icon sign">✍️</div>
+    <div class="link-text">
+      <div class="link-title">Подпись клиента</div>
+      <div class="link-sub">Страница подтверждения работы</div>
+    </div>
+    <div class="link-arrow">›</div>
+  </a>
+
+  <footer>Campus Communications · cmps.co.il</footer>
+</div>
+</body>
+</html>
