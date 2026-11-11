@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest-he.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="theme-color" content="#0f1b2d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Campus">
 <title>Campus Field</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -236,7 +242,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">כניסה למערכת</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.018</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.020</div>
     </div>
   </div>
 </div>
@@ -430,20 +436,6 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
           <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">סיבה (לא חובה)</label>
           <input type="text" id="to-reason" placeholder="חופשה, ימי מחלה..."
             style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)" dir="rtl">
-        </div>
-        <div style="margin-bottom:20px">
-          <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:8px">סוג יום</label>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <button type="button" id="to-type-full" onclick="setDayType('full')"
-              style="flex:1;padding:10px;border:2px solid #4361ee;border-radius:10px;background:#4361ee;color:white;font-size:14px;font-weight:600;cursor:pointer">☀️ יום שלם</button>
-            <button type="button" id="to-type-half" onclick="setDayType('half')"
-              style="flex:1;padding:10px;border:2px solid var(--gray-300);border-radius:10px;background:white;color:var(--gray-600);font-size:14px;font-weight:600;cursor:pointer">🕐 חצי יום</button>
-          </div>
-          <div id="to-half-time" style="display:none">
-            <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">עד השעה</label>
-            <input type="time" id="to-until" value="14:00"
-              style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
-          </div>
         </div>
         <div style="margin-bottom:20px">
           <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:8px">סוג יום</label>
