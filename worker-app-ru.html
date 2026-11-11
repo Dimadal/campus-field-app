@@ -236,7 +236,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.013</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.014</div>
     </div>
   </div>
 </div>
@@ -1664,16 +1664,45 @@ async function loadReportPhotos(reportId){
   }catch(e){}
 }
 
-function handlePhotos(input){
-  Array.from(input.files).forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=e=>{
-      reportPhotos.push({file,dataUrl:e.target.result});
-      addPhotoPreview(e.target.result,true);
+const MAX_PHOTOS=10;
+function compressImage(file,maxSide=1600,quality=0.7){
+  return new Promise(resolve=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.naturalWidth,h=img.naturalHeight;
+      const k=Math.min(1,maxSide/Math.max(w,h));
+      w=Math.round(w*k);h=Math.round(h*k);
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>{
+        if(!b||b.size>=file.size){resolve(file);return;}
+        resolve(new File([b],(file.name||'photo').replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'}));
+      },'image/jpeg',quality);
     };
-    reader.readAsDataURL(file);
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
   });
+}
+
+async function handlePhotos(input){
+  const files=Array.from(input.files);
   input.value='';
+  for(const f of files){
+    const current=document.getElementById('photos-preview').children.length;
+    if(current>=MAX_PHOTOS){toast('Максимум 10 фото на отчёт');break;}
+    const file=await compressImage(f);
+    await new Promise(res=>{
+      const reader=new FileReader();
+      reader.onload=e=>{
+        reportPhotos.push({file,dataUrl:e.target.result});
+        addPhotoPreview(e.target.result,true);
+        res();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 }
 
 function addPhotoPreview(src,isNew){
