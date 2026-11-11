@@ -236,7 +236,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.016</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.017</div>
     </div>
   </div>
 </div>
@@ -1410,6 +1410,7 @@ function renderAssignment(){
   if(obj.work_type)rows+=`<div class="detail-row"><div class="detail-icon">📂</div><div class="detail-label">Тип</div><div class="detail-value">${obj.work_type==='project'?'📋 Проект':'🔧 Обслуживание'}</div></div>`;
 
   const matsCard=obj.required_materials?`<div class="card" style="border-left:3px solid #f59e0b"><div class="card-header"><div class="card-label">🔧 Необходимые материалы</div></div><div class="card-body" style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:#92400e">${obj.required_materials}</div></div>`:'';
+  const negCard=a.negotiate_with_client?`<div class="card" style="border-left:3px solid #f59e0b;background:#fffbeb"><div class="card-body" style="font-weight:700;font-size:14px">⚠️ Договориться с клиентом о времени</div></div>`:'';
   const descCard=a.description?`<div class="card" style="border-left:3px solid var(--blue)"><div class="card-header"><div class="card-label">Задание от менеджера</div></div><div class="card-body" style="font-size:14px;line-height:1.6">${a.description}</div></div>`:'';
   const bonusCard=a.bonus?`<div class="card" style="border-left:3px solid #0db87e"><div class="card-header"><div class="card-label">🎁 Бонус за работу</div></div><div class="card-body"><div style="font-size:26px;font-weight:700;color:#0db87e">₪${Number(a.bonus).toLocaleString('ru')}</div></div></div>`:'';
 
@@ -1499,7 +1500,7 @@ function renderAssignment(){
   el.innerHTML=`
     <div class="card"><div class="card-header"><div class="card-label">Работа</div></div><div class="card-body">${rows||'<div style="color:var(--gray-500)">Нет данных</div>'}</div></div>
     ${matsCard}
-    ${descCard}
+    ${negCard}${descCard}
     ${bonusCard}
     ${timeSection}
     ${hasReport ? `<button class="btn btn-outline" onclick="sendReportWhatsApp()" style="margin-bottom:8px">📲 Отправить отчёт (WhatsApp)</button>` : ''}
