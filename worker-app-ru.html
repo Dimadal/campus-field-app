@@ -242,7 +242,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.020</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.022</div>
     </div>
   </div>
 </div>
@@ -298,6 +298,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
     </div>
   </div>
   <div style="padding:0 16px 32px">
+    <button class="btn btn-outline btn-sm" id="push-btn" data-state="off" onclick="pushBtnClick()" style="margin-bottom:10px;width:100%"></button>
     <button class="btn btn-outline btn-sm" onclick="showScreen('changepass')" style="margin-bottom:10px;width:100%">🔑 Сменить пароль</button>
     <button class="btn btn-ghost btn-sm" onclick="logout()">Выйти из системы</button>
   </div>
@@ -761,6 +762,7 @@ async function apiDB(path,method='GET',body=null,token=null){
 function showScreen(n){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+n).classList.add('active');
+  if(n==='menu') refreshPushBtn();
   window.scrollTo(0,0);
   // Push state for back button handling
   if(n !== 'login') {
@@ -2274,6 +2276,67 @@ window.addEventListener('DOMContentLoaded', async function() {
     localStorage.removeItem('worker_session');
   }
 });
+
+// ===== Push-уведомления =====
+const VAPID_PUBLIC = 'BM9bej73H7wtjeG0v13rF_ASM0SGRL6crfkxPSbxHSetfnU-x_wtA4_8EgO130VEJ-MPkB-ErMKH1bLmEmD_0a4';
+const PUSH_LANG = 'ru';
+const PUSH_T = {
+  btn_enable:'🔔 Включить уведомления', btn_on:'🔔 Уведомления включены ✓',
+  btn_denied:'🔔 Уведомления заблокированы', btn_ios:'🔔 Уведомления: сначала добавьте приложение на экран «Домой»', btn_nosup:'🔔 Уведомления недоступны на этом устройстве',
+  hint_denied:'Разрешите уведомления для этого сайта в настройках телефона или браузера',
+  hint_ios:'На iPhone откройте Safari → «Поделиться» → «На экран “Домой”», затем запускайте приложение с экрана «Домой»',
+  hint_nosup:'Этот браузер не поддерживает уведомления. Используйте Chrome',
+  already:'Уведомления уже включены', test_title:'Уведомления включены ✅', test_body:'Вы будете получать новые задания', err:'Ошибка'
+};
+function b64ToU8(b){const p='='.repeat((4-b.length%4)%4);const s=(b+p).replace(/-/g,'+').replace(/_/g,'/');const r=atob(s);return Uint8Array.from(r,c=>c.charCodeAt(0));}
+function pushSupported(){return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;}
+function pushIsIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent);}
+function pushStandalone(){return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;}
+async function savePushSub(sub){
+  const j=sub.toJSON();
+  const r=await fetch(SUPA+'/rest/v1/push_subscriptions?on_conflict=endpoint',{method:'POST',
+    headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({worker_id:String(currentWorker.id),endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,lang:PUSH_LANG,user_agent:navigator.userAgent.slice(0,200)})});
+  if(!r.ok) throw new Error(await r.text());
+}
+async function refreshPushBtn(){
+  const b=document.getElementById('push-btn'); if(!b) return;
+  b.dataset.state='off';
+  if(!pushSupported()){
+    b.dataset.state=(pushIsIOS()&&!pushStandalone())?'ios':'nosup';
+    b.textContent=PUSH_T[b.dataset.state==='ios'?'btn_ios':'btn_nosup']; return;
+  }
+  if(Notification.permission==='denied'){b.dataset.state='denied';b.textContent=PUSH_T.btn_denied;return;}
+  try{
+    const reg=await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    if(sub && Notification.permission==='granted'){
+      b.dataset.state='on'; b.textContent=PUSH_T.btn_on;
+      if(currentWorker) savePushSub(sub).catch(()=>{});
+      return;
+    }
+  }catch(e){}
+  b.textContent=PUSH_T.btn_enable;
+}
+async function pushBtnClick(){
+  const b=document.getElementById('push-btn'); const st=b?b.dataset.state:'off';
+  if(st==='ios') return toast(PUSH_T.hint_ios,6000);
+  if(st==='nosup') return toast(PUSH_T.hint_nosup,5000);
+  if(st==='denied') return toast(PUSH_T.hint_denied,6000);
+  if(st==='on') return toast(PUSH_T.already);
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){refreshPushBtn();return toast(PUSH_T.hint_denied,6000);}
+    const reg=await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(VAPID_PUBLIC)});
+    await savePushSub(sub);
+    await reg.showNotification(PUSH_T.test_title,{body:PUSH_T.test_body,icon:'icon-192.png',vibrate:[200,100,200]});
+    refreshPushBtn();
+  }catch(e){toast(PUSH_T.err+': '+(e.message||e),6000);}
+}
 </script>
 
 <!-- Customer search fullscreen modal -->
