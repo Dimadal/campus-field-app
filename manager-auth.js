@@ -106,7 +106,7 @@
     '#cfm-auth button.pr:disabled{opacity:.6}' +
     '#cfm-auth button.ln{background:none;border:none;color:#2563eb;margin-top:10px;font-size:14px;cursor:pointer;width:100%}' +
     '#cfm-auth .er{color:#b91c1c;background:#fee2e2;border-radius:8px;padding:8px 10px;font-size:13px;margin-top:12px;display:none}' +
-    '#cfm-auth .qr{text-align:center;margin:8px 0}#cfm-auth .qr img{width:180px;height:180px}' +
+    '#cfm-auth .qr{text-align:center;margin:8px 0;min-height:204px;display:flex;justify-content:center}#cfm-auth .qr img{width:180px;height:180px;padding:12px;background:#fff;border:1px solid #e3e7f0;border-radius:10px;box-sizing:content-box}#cfm-auth .qr canvas{display:none!important}' +
     '#cfm-auth .sc{font-family:monospace;font-size:12px;word-break:break-all;background:#f2f4f9;border-radius:8px;padding:8px;text-align:center;direction:ltr}' +
     '#cfm-auth input.cd{text-align:center;letter-spacing:6px;font-size:22px;direction:ltr}' +
     '#cfm-logout{position:fixed;bottom:8px;' + (HE ? 'right' : 'left') + ':8px;z-index:2147482000;background:#fff;color:#4361ee;border:1px solid #d7dcea;border-radius:16px;padding:3px 10px;font-size:11px;cursor:pointer;opacity:.75;font-family:inherit}';
@@ -157,14 +157,45 @@
     box.innerHTML = '<div class="cb"><h2>🔐 ' + T.mfaTitle + '</h2><p>' + T.mfaText + '</p>' + codeForm(T.verify) + '</div>';
     wireCode(factorId);
   }
+  var QR_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  function loadScript(src, ok, fail) {
+    if (window.QRCode) { ok(); return; }
+    var sc = document.createElement('script');
+    sc.src = src; sc.onload = ok; sc.onerror = fail;
+    document.head.appendChild(sc);
+  }
+  function renderQR(holder, uri, qrImg) {
+    function fallbackImg() {
+      if (!qrImg) return;
+      var src = String(qrImg);
+      if (/^\s*</.test(src)) {
+        src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+      } else if (src.indexOf('data:image/svg+xml') === 0 && src.indexOf(',') > 0) {
+        var i = src.indexOf(','), head = src.slice(0, i + 1), body = src.slice(i + 1);
+        if (body.indexOf('%3C') !== 0) {
+          try { body = encodeURIComponent(decodeURIComponent(body)); } catch (e) { body = encodeURIComponent(body); }
+          src = head + body;
+        }
+      }
+      holder.innerHTML = '<img alt="QR" src="' + esc(src) + '">';
+    }
+    if (!uri) { fallbackImg(); return; }
+    loadScript(QR_CDN, function () {
+      try {
+        holder.innerHTML = '';
+        new window.QRCode(holder, { text: uri, width: 180, height: 180, correctLevel: window.QRCode.CorrectLevel.M });
+      } catch (e) { fallbackImg(); }
+    }, fallbackImg);
+  }
   async function viewEnroll() {
     box.innerHTML = '<div class="cb"><h2>🔐 ' + T.enrollTitle + '</h2><p>' + T.checking + '</p></div>';
     try {
       var f = await auth('factors', { factor_type: 'totp', issuer: 'Campus', friendly_name: 'Authenticator ' + Date.now() }, session.access_token);
-      var qr = f.totp && f.totp.qr_code;
+      var tp = f.totp || {};
       box.innerHTML = '<div class="cb"><h2>🔐 ' + T.enrollTitle + '</h2><p>' + T.enrollText + '</p>' +
-        '<div class="qr"><img alt="QR" src="' + esc(qr) + '"></div>' +
-        '<p style="margin:0 0 4px;font-size:12px">' + T.secret + ':</p><div class="sc">' + esc(f.totp && f.totp.secret) + '</div>' + codeForm(T.verify) + '</div>';
+        '<div class="qr" id="cfm-qr"></div>' +
+        '<p style="margin:0 0 4px;font-size:12px">' + T.secret + ':</p><div class="sc">' + esc(tp.secret) + '</div>' + codeForm(T.verify) + '</div>';
+      renderQR(document.getElementById('cfm-qr'), tp.uri, tp.qr_code);
       wireCode(f.id);
     } catch (e) {
       viewLogin(T.err + ': ' + e.message);
