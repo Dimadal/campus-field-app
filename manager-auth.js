@@ -64,15 +64,33 @@
     return session.access_token;
   }
   async function isManager(token, uid) {
-    var r = await origFetch(SUPA + '/rest/v1/manager_users?select=user_id&user_id=eq.' + uid, {
+    var r = await origFetch(SUPA + '/rest/v1/manager_users?select=user_id,email,full_name&user_id=eq.' + uid, {
       headers: { apikey: ANON, Authorization: 'Bearer ' + token }
     });
     if (!r.ok) return false;
     var j = await r.json().catch(function () { return []; });
-    return Array.isArray(j) && j.length > 0;
+    if (Array.isArray(j) && j.length > 0) {
+      var m = j[0] || {};
+      window.CFM_USER = { id: uid, email: m.email || '', name: m.full_name || m.email || 'Менеджер' };
+      return true;
+    }
+    return false;
   }
-  function logout() {
-    try { if (session) origFetch(SUPA + '/auth/v1/logout', { method: 'POST', headers: { apikey: ANON, Authorization: 'Bearer ' + session.access_token } }); } catch (e) {}
+  function writeLog(token, type, text) {
+    var u = window.CFM_USER || {};
+    return origFetch(SUPA + '/rest/v1/activity_log', {
+      method: 'POST', keepalive: true,
+      headers: { apikey: ANON, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ event_type: 'login', entity_type: 'login', entity_id: String(u.id || ''), description: text + (u.name || ''), actor: u.name || (HE ? 'מנהל' : 'Менеджер'), actor_role: 'manager', meta: { actor_id: u.id || null, kind: type } })
+    }).catch(function () {});
+  }
+  async function logout() {
+    try {
+      if (session) {
+        await Promise.race([writeLog(session.access_token, 'logout', HE ? 'יציאה מהמערכת: ' : 'Выход из системы: '), new Promise(function (r) { setTimeout(r, 1500); })]);
+        origFetch(SUPA + '/auth/v1/logout', { method: 'POST', headers: { apikey: ANON, Authorization: 'Bearer ' + session.access_token } });
+      }
+    } catch (e) {}
     clearSession();
     location.reload();
   }
@@ -246,7 +264,7 @@
         var ch = await auth('factors/' + factorId + '/challenge', {}, session.access_token);
         var j = await auth('factors/' + factorId + '/verify', { challenge_id: ch.id, code: code }, session.access_token);
         var s = normalize(j); s.user = session.user; saveSession(s);
-        done();
+        done(true);
       } catch (e) {
         setBusy(false); c.value = ''; c.focus();
         showErr(e.status === 400 || e.status === 422 ? T.wrongCode : (T.err + ': ' + e.message));
@@ -258,7 +276,8 @@
     c.focus();
   }
 
-  function done() {
+  function done(fresh) {
+    if (fresh && session) writeLog(session.access_token, 'login', HE ? 'כניסה למערכת: ' : 'Вход в систему: ');
     box.remove();
     if (bg.parentNode) bg.parentNode.removeChild(bg);
     document.documentElement.classList.remove('cfm-locked');
