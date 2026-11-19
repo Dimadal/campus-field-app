@@ -242,7 +242,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">Войти в систему</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.028</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.031</div>
     </div>
   </div>
 </div>
@@ -444,13 +444,9 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
             <button type="button" id="to-type-full" onclick="setDayType('full')"
               style="flex:1;padding:10px;border:2px solid #4361ee;border-radius:10px;background:#4361ee;color:white;font-size:14px;font-weight:600;cursor:pointer">☀️ Весь день</button>
             <button type="button" id="to-type-half" onclick="setDayType('half')"
-              style="flex:1;padding:10px;border:2px solid var(--gray-300);border-radius:10px;background:white;color:var(--gray-600);font-size:14px;font-weight:600;cursor:pointer">🕐 Полдня</button>
+              style="flex:1;padding:10px;border:2px solid var(--gray-300);border-radius:10px;background:white;color:var(--gray-600);font-size:14px;font-weight:600;cursor:pointer">🕐 По времени</button>
           </div>
-          <div id="to-half-time" style="display:none">
-            <label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">До времени</label>
-            <input type="time" id="to-until" value="14:00"
-              style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)">
-          </div>
+          <div id="to-half-time" style="display:none"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">С времени</label><input type="time" id="to-from-time" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)"></div><div><label style="font-size:12px;font-weight:700;color:var(--gray-600);display:block;margin-bottom:6px">До времени</label><input type="time" id="to-until" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:10px;font-size:15px;outline:none;background:var(--white)"></div></div></div>
         </div>
         <button class="btn btn-primary" id="to-btn" onclick="submitTimeOff()" style="width:100%;padding:14px;font-size:16px">Отправить запрос</button>
       </div>
@@ -924,6 +920,9 @@ async function submitTimeOff() {
   try {
     const isHalf = document.getElementById('to-type-half')?.style.background === 'rgb(67, 97, 238)';
     const until = isHalf ? document.getElementById('to-until')?.value : null;
+    const wfrom = isHalf ? document.getElementById('to-from-time')?.value : null;
+    if(isHalf && !until && !wfrom){ errEl.textContent='Укажите время «с» или «до»'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Отправить запрос'; return; }
+    if(isHalf && until && wfrom && until<=wfrom){ errEl.textContent='Время «до» должно быть позже «с»'; errEl.style.display='block'; btn.disabled=false; btn.textContent='Отправить запрос'; return; }
     await apiDB('time_off_requests', 'POST', {
       worker_id: currentWorker.id,
       date_from: from,
@@ -931,7 +930,8 @@ async function submitTimeOff() {
       reason: reason || null,
       status: 'pending',
       is_half_day: isHalf,
-      half_day_until: until || null
+      half_day_until: until || null,
+      work_from: wfrom || null
     }, currentUser.access_token);
     toast('✅ Запрос отправлен');
     document.getElementById('to-reason').value = '';
@@ -945,6 +945,7 @@ async function submitTimeOff() {
   btn.disabled = false; btn.textContent = 'Отправить запрос';
 }
 
+function todRange(r){const f=r.work_from?String(r.work_from).slice(0,5):'',u=r.half_day_until?String(r.half_day_until).slice(0,5):'';return (f?'с '+f:'')+(f&&u?' ':'')+(u?'до '+u:'');}
 async function loadMyTimeOffRequests() {
   const el = document.getElementById('timeoff-list');
   if(!el) return;
@@ -956,12 +957,12 @@ async function loadMyTimeOffRequests() {
       const to = r.date_to.split('-').reverse().join('.');
       const days = Math.round((new Date(r.date_to) - new Date(r.date_from)) / 86400000) + 1;
       const period = from === to ? from : from + ' — ' + to;
-      const halfLabel = r.is_half_day ? ' 🕐 עד ' + (r.half_day_until ? r.half_day_until.slice(0,5) : '') : '';
+      const halfLabel = '';
       const statusText = r.status === 'approved' ? '✅ Одобрено' : r.status === 'rejected' ? '❌ Отклонено' : '🟡 Ожидает';
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100)">
         <div>
           <div style="font-size:14px;font-weight:600">${period}</div>
-          <div style="font-size:12px;color:var(--gray-500)">${r.is_half_day ? '🕐 Полдня' : days+' дн.'}${r.reason?' · '+r.reason:''}${r.is_half_day&&r.half_day_until?' до '+r.half_day_until.slice(0,5):''}</div>
+          <div style="font-size:12px;color:var(--gray-500)">${r.is_half_day ? '🕐 Полдня' : days+' дн.'}${r.reason?' · '+r.reason:''}${r.is_half_day&&todRange(r)?' '+todRange(r):''}</div>
           ${r.manager_note?'<div style="font-size:11px;color:var(--blue);margin-top:2px">'+r.manager_note+'</div>':''}
         </div>
         <div style="font-size:13px;font-weight:600">${statusText}</div>
@@ -1353,6 +1354,15 @@ function assignmentCard(a){
   </div>`;
 }
 
+let teamMates=[];
+async function loadTeam(){
+  teamMates=[];
+  try{
+    const a=currentAssignment,d=a.work_date||a.date_from;
+    if(!a.object_id||!d) return;
+    teamMates=await apiDB('assignments?select=worker_id,is_responsible,workers(full_name,full_name_he)&object_id=eq.'+a.object_id+'&work_date=eq.'+d+'&worker_id=neq.'+currentWorker.id+'&status=neq.cancelled','GET',null,currentUser.access_token);
+  }catch(e){teamMates=[];}
+}
 async function openAssignment(id){
   showScreen('assignment');
   const el=document.getElementById('assignment-content');
@@ -1365,6 +1375,7 @@ async function openAssignment(id){
     currentReport=reports[0]||null;
     document.getElementById('assign-date').textContent=fmtDate(currentAssignment.date_from||currentAssignment.work_date);
     await loadDailyCheckins();
+    await loadTeam();
     renderAssignment();
   }catch(e){el.innerHTML='<div class="empty-wrap"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка</div></div>';}
 }
@@ -1423,6 +1434,7 @@ function renderAssignment(){
 
   const matsCard=obj.required_materials?`<div class="card" style="border-left:3px solid #f59e0b"><div class="card-header"><div class="card-label">🔧 Необходимые материалы</div></div><div class="card-body" style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:#92400e">${obj.required_materials}</div></div>`:'';
   const negCard=a.negotiate_with_client?`<div class="card" style="border-left:3px solid #f59e0b;background:#fffbeb"><div class="card-body" style="font-weight:700;font-size:14px">⚠️ Договориться с клиентом о времени</div></div>`:'';
+  const teamCard=teamMates.length?`<div class="card" style="border-left:3px solid #f59e0b"><div class="card-body" style="font-size:14px;line-height:1.7">${a.is_responsible?'<div style="font-weight:700">★ Вы ответственный</div>':(teamMates.find(w=>w.is_responsible)?'<div style="font-weight:700">★ Ответственный: '+(teamMates.find(w=>w.is_responsible).workers?.full_name||'')+'</div>':'')}<div>Вместе с вами: ${teamMates.map(w=>w.workers?.full_name||'—').join(', ')}</div></div></div>`:'';
   const descCard=a.description?`<div class="card" style="border-left:3px solid var(--blue)"><div class="card-header"><div class="card-label">Задание от менеджера</div></div><div class="card-body" style="font-size:14px;line-height:1.6">${a.description}</div></div>`:'';
   const bonusCard=a.bonus?`<div class="card" style="border-left:3px solid #0db87e"><div class="card-header"><div class="card-label">🎁 Бонус за работу</div></div><div class="card-body"><div style="font-size:26px;font-weight:700;color:#0db87e">₪${Number(a.bonus).toLocaleString('ru')}</div></div></div>`:'';
 
@@ -1512,7 +1524,7 @@ function renderAssignment(){
   el.innerHTML=`
     <div class="card"><div class="card-header"><div class="card-label">Работа</div></div><div class="card-body">${rows||'<div style="color:var(--gray-500)">Нет данных</div>'}</div></div>
     ${matsCard}
-    ${negCard}${descCard}
+    ${negCard}${teamCard}${descCard}
     ${bonusCard}
     ${timeSection}
     ${hasReport ? `<button class="btn btn-outline" onclick="sendReportWhatsApp()" style="margin-bottom:8px">📲 Отправить отчёт (WhatsApp)</button>` : ''}
