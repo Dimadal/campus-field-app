@@ -242,7 +242,7 @@ body { font-family: var(--sans); background: var(--gray-100); color: var(--text)
         <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary" id="login-btn" onclick="login()">כניסה למערכת</button>
-      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.027</div>
+      <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--gray-400);font-family:var(--mono)">v1.12.028</div>
     </div>
   </div>
 </div>
@@ -1065,7 +1065,7 @@ async function loadBrigade() {
   try {
     const today = new Date().toISOString().split('T')[0];
     brigadeWorkers = await apiDB('workers?select=*&order=full_name_he.asc', 'GET', null, currentUser.access_token);
-    const assignments = await apiDB('assignments?select=*,objects(name,address)&work_date=eq.'+today+'&order=created_at.desc','GET',null,currentUser.access_token);
+    const assignments = await apiDB('assignments?select=*,objects(name,address,job_number)&work_date=eq.'+today+'&order=created_at.desc','GET',null,currentUser.access_token);
     const byWorker = {};
     assignments.forEach(a => { if(!byWorker[a.worker_id])byWorker[a.worker_id]=[]; byWorker[a.worker_id].push(a); });
     let html = `<button class="btn btn-primary" style="margin-bottom:16px" onclick="openCreateForWorker()">➕ צור משימה לטכנאי</button>`;
@@ -1085,7 +1085,7 @@ async function loadBrigade() {
           </div>
         </div>
         ${wA.map(a=>`<div style="padding:10px 14px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-size:13px;font-weight:500">${a.objects?.name||'—'}</div><div style="font-size:11px;color:var(--gray-500)">${a.objects?.address||''}</div></div>
+          <div><div style="font-size:13px;font-weight:500">${a.objects?.job_number?'<span style="font-family:monospace;color:var(--gray-500)">№'+fmtJobNo(a.objects.job_number)+'</span> ':''}${a.objects?.name||'—'}</div><div style="font-size:11px;color:var(--gray-500)">${a.objects?.address||''}</div></div>
           <div style="display:flex;gap:6px;align-items:center">
             ${a.bonus?`<span style="font-weight:700;color:#0db87e;font-size:13px">₪${Number(a.bonus).toLocaleString('he')}</span>`:''}
             <span class="badge badge-${a.status==='done'?'green':a.status==='active'?'blue':'gray'}">${a.status==='done'?'הושלם':a.status==='active'?'בביצוע':'ממתין'}</span>
@@ -1264,7 +1264,7 @@ async function loadAssignments(){
   el.innerHTML='<div class="loading-wrap"><div class="spinner"></div>טוען...</div>';
   try{
     const today=new Date().toISOString().split('T')[0];
-    const data=await apiDB('assignments?select=*,objects(id,name,address,client_name,company,work_place)&worker_id=eq.'+currentWorker.id+'&order=work_date.desc','GET',null,currentUser.access_token);
+    const data=await apiDB('assignments?select=*,objects(id,name,address,client_name,company,work_place,job_number)&worker_id=eq.'+currentWorker.id+'&order=work_date.desc','GET',null,currentUser.access_token);
     if(!data.length){el.innerHTML='<div class="empty-wrap"><div class="empty-icon">📋</div><div class="empty-title">אין משימות</div><div class="empty-sub">המנהל עדיין לא הקצה משימות</div></div>';return;}
     const todayItems=data.filter(a=>a.work_date===today);
     const otherItems=data.filter(a=>a.work_date!==today);
@@ -1275,6 +1275,7 @@ async function loadAssignments(){
   }catch(e){el.innerHTML='<div class="empty-wrap"><div class="empty-icon">⚠️</div><div class="empty-title">שגיאת טעינה</div></div>';}
 }
 
+function fmtJobNo(n){return (n===null||n===undefined||n==='')?'':String(n).padStart(7,'0');}
 function assignmentCard(a){
   const sc={pending:'pending',active:'active',done:'done'}[a.status]||'pending';
   const sl={pending:'ממתין',active:'בביצוע',done:'הושלם'}[a.status]||'ממתין';
@@ -1283,6 +1284,7 @@ function assignmentCard(a){
   return `<div class="assign-card ${sc}" onclick="openAssignment('${a.id}')">
     <div class="assign-card-body">
       <div class="assign-client">${client}</div>
+      ${a.objects?.job_number?'<div style="font-family:monospace;font-size:12px;font-weight:700;color:var(--gray-500)">№ '+fmtJobNo(a.objects.job_number)+'</div>':''}
       <div class="assign-addr">📍 ${addr}</div>
       <div style="display:flex;align-items:center">
         <span class="badge badge-${sc}">${sl}</span>
@@ -1424,6 +1426,8 @@ function renderAssignment(){
   updateSteps(hasArrived,hasReport,hasLeft);
   const obj=a.objects||{};
   let rows='';
+  if(obj.job_number)rows+=`<div class="detail-row"><div class="detail-icon">🔢</div><div class="detail-label">מס׳ עבודה</div><div class="detail-value" style="font-family:monospace;font-weight:700">${fmtJobNo(obj.job_number)}</div></div>`;
+  if(r&&r.report_number)rows+=`<div class="detail-row"><div class="detail-icon">📝</div><div class="detail-label">מס׳ דוח</div><div class="detail-value" style="font-family:monospace;font-weight:700">${r.report_number}</div></div>`;
   if(obj.client_name||obj.company)rows+=`<div class="detail-row"><div class="detail-icon">🏢</div><div class="detail-label">לקוח</div><div class="detail-value">${obj.client_name||obj.company}</div></div>`;
   if(obj.address)rows+=`<div class="detail-row"><div class="detail-icon">📍</div><div class="detail-label">כתובת</div><div class="detail-value">${obj.address}</div></div>`;
   if(obj.work_place)rows+=`<div class="detail-row"><div class="detail-icon">🔧</div><div class="detail-label">מיקום עבודה</div><div class="detail-value">${obj.work_place}</div></div>`;

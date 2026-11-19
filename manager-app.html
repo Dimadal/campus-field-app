@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Field Manager App v1.12.027</title>
+<title>Field Manager App v1.12.028</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   :root{
@@ -156,7 +156,7 @@
       <input class="form-input" type="password" id="password-input" placeholder="••••••" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" id="login-btn" onclick="login()">Войти</button>
-    <div style="text-align:center;margin-top:14px"><span class="version-tag">v1.12.027</span></div>
+    <div style="text-align:center;margin-top:14px"><span class="version-tag">v1.12.028</span></div>
   </div>
 </div>
 
@@ -344,6 +344,7 @@ let allCustomers = [];
 let prevScreen = null;
 
 // ===== API =====
+function jn(n){return (n===null||n===undefined||n==='')?'':'№'+String(n).padStart(7,'0')+' · ';}
 async function apiAuth(path, body) {
   const r = await fetch(SUPA+'/auth/v1/'+path, {method:'POST',headers:{'apikey':ANON,'Content-Type':'application/json'},body:JSON.stringify(body)});
   return r.json();
@@ -433,7 +434,7 @@ async function loadToday() {
     const today=new Date().toISOString().split('T')[0];
     const [workers, todayA, allA, reports] = await Promise.all([
       apiDB('workers?select=*&order=full_name.asc','GET',null,currentUser.access_token),
-      apiDB('assignments?select=*,objects(name,address)&work_date=eq.'+today+'&order=created_at.desc','GET',null,currentUser.access_token),
+      apiDB('assignments?select=*,objects(name,address,job_number)&work_date=eq.'+today+'&order=created_at.desc','GET',null,currentUser.access_token),
       apiDB('assignments?select=id,status','GET',null,currentUser.access_token),
       apiDB('reports?select=id,arrived_at,left_at&order=created_at.desc&limit=50','GET',null,currentUser.access_token),
     ]);
@@ -474,7 +475,7 @@ async function loadToday() {
       todayA.forEach(a=>{
         html+=`<div class="assign-card" onclick="openAssignmentDetail('${a.id}')">
           <div class="assign-card-body">
-            <div class="assign-client">${a.objects?.name||'—'}</div>
+            <div class="assign-client">${jn(a.objects?.job_number)}${a.objects?.name||'—'}</div>
             <div class="assign-addr">📍 ${a.objects?.address||'—'}</div>
             <div style="display:flex;align-items:center;margin-top:4px">${sBadge(a.status)}</div>
           </div>
@@ -492,7 +493,7 @@ async function loadAssignments() {
   const el=document.getElementById('assignments-content');
   el.innerHTML='<div class="loading-wrap"><div class="spinner"></div>Загрузка...</div>';
   try {
-    const data=await apiDB('assignments?select=*,workers(full_name),objects(name,address)&order=work_date.desc&limit=100','GET',null,currentUser.access_token);
+    const data=await apiDB('assignments?select=*,workers(full_name),objects(name,address,job_number)&order=work_date.desc&limit=100','GET',null,currentUser.access_token);
     if(!data.length){ el.innerHTML='<div class="empty-wrap"><div class="empty-icon">📋</div><div class="empty-title">Нет заданий</div></div>'; return; }
     
     // Group by date
@@ -505,7 +506,7 @@ async function loadAssignments() {
       byDate[date].forEach(a=>{
         html+=`<div class="assign-card" onclick="openAssignmentDetail('${a.id}')">
           <div class="assign-card-body">
-            <div class="assign-client">${a.objects?.name||'—'}${a.bonus?'<span style="margin-left:6px;width:20px;height:20px;border-radius:50%;background:#0db87e;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;vertical-align:middle">₪</span>':''}</div>
+            <div class="assign-client">${jn(a.objects?.job_number)}${a.objects?.name||'—'}${a.bonus?'<span style="margin-left:6px;width:20px;height:20px;border-radius:50%;background:#0db87e;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;vertical-align:middle">₪</span>':''}</div>
             <div class="assign-addr">👷 ${a.workers?.full_name||'—'}</div>
             <div style="display:flex;align-items:center;margin-top:4px">${sBadge(a.status)}</div>
           </div>
@@ -525,7 +526,7 @@ async function openAssignmentDetail(id) {
   el.innerHTML='<div class="loading-wrap"><div class="spinner"></div>Загрузка...</div>';
   try {
     const [aList, rList] = await Promise.all([
-      apiDB('assignments?select=*,workers(full_name),objects(name,address,client_name,company)&id=eq.'+id,'GET',null,currentUser.access_token),
+      apiDB('assignments?select=*,workers(full_name),objects(name,address,client_name,company,job_number)&id=eq.'+id,'GET',null,currentUser.access_token),
       apiDB('reports?select=*,materials(name,quantity,unit)&assignment_id=eq.'+id,'GET',null,currentUser.access_token),
     ]);
     const a=aList[0]; const r=rList[0];
@@ -537,7 +538,7 @@ async function openAssignmentDetail(id) {
       <div class="card">
         <div class="card-body">
           ${company?`<div style="font-size:12px;color:var(--muted);margin-bottom:4px">${company}</div>`:''}
-          <div style="font-size:16px;font-weight:700;margin-bottom:4px">${a.objects?.name||'—'}</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px">${jn(a.objects?.job_number)}${a.objects?.name||'—'}</div>
           <div style="font-size:13px;color:var(--muted)">📍 ${a.objects?.address||'—'}</div>
           <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
             ${sBadge(a.status)}
@@ -707,7 +708,7 @@ async function loadWorkers() {
     const today=new Date().toISOString().split('T')[0];
     const [workers,todayA,reports]=await Promise.all([
       apiDB('workers?select=*&order=full_name.asc','GET',null,currentUser.access_token),
-      apiDB('assignments?select=*,objects(name)&work_date=eq.'+today,'GET',null,currentUser.access_token),
+      apiDB('assignments?select=*,objects(name,job_number)&work_date=eq.'+today,'GET',null,currentUser.access_token),
       apiDB('reports?select=id,assignment_id,arrived_at,left_at&order=created_at.desc&limit=200','GET',null,currentUser.access_token),
     ]);
     allWorkers=workers;
@@ -731,7 +732,7 @@ async function loadWorkers() {
           </div>
         </div>
         ${wa.length?`<div style="border-top:1px solid var(--border);padding:10px 14px">
-          ${wa.map(a=>`<div style="font-size:13px;color:var(--muted)">📍 ${a.objects?.name||'—'}</div>`).join('')}
+          ${wa.map(a=>`<div style="font-size:13px;color:var(--muted)">📍 ${jn(a.objects?.job_number)}${a.objects?.name||'—'}</div>`).join('')}
         </div>`:''}
       </div>`;
     });
@@ -745,7 +746,7 @@ async function loadReports() {
   const el=document.getElementById('reports-content');
   el.innerHTML='<div class="loading-wrap"><div class="spinner"></div>Загрузка...</div>';
   try {
-    const data=await apiDB('reports?select=*,assignments(work_date,workers(full_name),objects(name,client_name,company)),materials(name,quantity,unit)&order=created_at.desc&limit=50','GET',null,currentUser.access_token);
+    const data=await apiDB('reports?select=*,assignments(work_date,workers(full_name),objects(name,client_name,company,job_number)),materials(name,quantity,unit)&order=created_at.desc&limit=50','GET',null,currentUser.access_token);
     if(!data.length){ el.innerHTML='<div class="empty-wrap"><div class="empty-icon">📊</div><div class="empty-title">Отчётов нет</div></div>'; return; }
     
     let html='';
@@ -759,7 +760,7 @@ async function loadReports() {
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600">${r.assignments?.workers?.full_name||'—'}</div>
             ${company?`<div style="font-size:11px;color:var(--muted)">${company}</div>`:''}
-            <div style="font-size:12px;color:var(--muted)">${r.assignments?.objects?.name||'—'}</div>
+            <div style="font-size:12px;color:var(--muted)">${r.report_number?'<b style="font-family:monospace">№ '+r.report_number+'</b> · ':''}${r.assignments?.objects?.name||'—'}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px">📅 ${fmtDate(r.assignments?.work_date)} · 🕐 ${fmtTime(r.arrived_at)}–${fmtTime(r.left_at)}${dur?' · ⏱'+dur:''}</div>
           </div>
         </div>

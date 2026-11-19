@@ -71,7 +71,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans"
 <div class="err" id="err"></div>
 <div class="sum" id="sum"></div>
 <div class="wrap" id="list"><div class="empty">…</div></div>
-<div class="ver"><span>v1.12.027</span></div>
+<div class="ver"><span>v1.12.028</span></div>
 <div class="sheet-bg" id="sbg" onclick="if(event.target===this)closeSheet()"><div class="sheet" id="sheet"></div></div>
 <script>
 const SUPA='https://pvaogqxpbkwxarbgzvpi.supabase.co';
@@ -83,6 +83,7 @@ let day=new Date(); day.setHours(12,0,0,0);
 let store={assignments:[],workers:[],checks:{},reports:{},off:[]};
 function iso(d){const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10);}
 function fmtD(d){const p=iso(d).split('-');return p[2]+'.'+p[1]+'.'+p[0];}
+function jn(n){return (n===null||n===undefined||n==='')?'':'№'+String(n).padStart(7,'0')+' · ';}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 async function api(path){
   const r=await fetch(SUPA+'/rest/v1/'+path,{headers:{apikey:ANON,Authorization:'Bearer '+ANON}});
@@ -104,7 +105,7 @@ async function load(){
   try{
     document.getElementById('err').style.display='none';
     const [as,ws,off]=await Promise.all([
-      api('assignments?select=*,workers(id,full_name,full_name_he,phone),objects(name,address,client_name,work_place,work_description,required_materials,contact_name,contact_phone)&or=('+['work_date.eq.'+D,'date_from.eq.'+D,'and(date_from.lte.'+D+',date_to.gte.'+D+')'].join(',')+')&order=created_at.asc&limit=500'),
+      api('assignments?select=*,workers(id,full_name,full_name_he,phone),objects(name,address,client_name,work_place,work_description,required_materials,contact_name,contact_phone,job_number)&or=('+['work_date.eq.'+D,'date_from.eq.'+D,'and(date_from.lte.'+D+',date_to.gte.'+D+')'].join(',')+')&order=created_at.asc&limit=500'),
       api('workers?select=id,full_name,full_name_he,phone,is_manager&order=full_name.asc'),
       api('time_off_requests?select=*&status=eq.approved&date_from=lte.'+D+'&date_to=gte.'+D)
     ]);
@@ -179,7 +180,7 @@ function assignHTML(a,isToday){
   if(ck&&ck.left_at) tags.push('<span class="tg ok">'+T.left+' '+timeOf(ck.left_at)+'</span>');
   if(!ck&&isToday&&st!=='done'&&new Date().getHours()>=10) tags.push('<span class="tg bad">'+T.noArrive+'</span>');
   if(store.reports[a.id]) tags.push('<span class="tg ok">📄 '+T.report+'</span>');
-  return '<div class="as" onclick="openSheet(\''+a.id+'\')"><div class="bar '+st+'"></div><div class="ab"><div class="at">'+esc(o.name||o.client_name||'—')+'</div><div class="ad">'+esc([o.client_name&&o.client_name!==o.name?o.client_name:'',o.address].filter(Boolean).join(' · '))+'</div><div class="tags">'+tags.join('')+'</div></div></div>';
+  return '<div class="as" onclick="openSheet(\''+a.id+'\')"><div class="bar '+st+'"></div><div class="ab"><div class="at">'+esc(jn(o.job_number)+(o.name||o.client_name||'—'))+'</div><div class="ad">'+esc([o.client_name&&o.client_name!==o.name?o.client_name:'',o.address].filter(Boolean).join(' · '))+'</div><div class="tags">'+tags.join('')+'</div></div></div>';
 }
 
 function openSheet(id){
@@ -197,7 +198,7 @@ function openSheet(id){
     [T.arrived,ck&&ck.arrived_at?timeOf(ck.arrived_at):''],[T.left,ck&&ck.left_at?timeOf(ck.left_at):'']
   ].filter(r=>r[1]);
   const wa=phoneWA(w.phone);
-  document.getElementById('sheet').innerHTML='<h3>'+esc(o.name||'—')+'</h3>'+rows.map(r=>'<div class="row"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>').join('')+
+  document.getElementById('sheet').innerHTML='<h3>'+esc(jn(o.job_number)+(o.name||'—'))+'</h3>'+rows.map(r=>'<div class="row"><b>'+r[0]+'</b><span>'+esc(r[1])+'</span></div>').join('')+
     '<div class="btns">'+(w.phone?'<a class="btn" href="tel:'+esc(w.phone)+'">📞 '+T.call+'</a>':'')+(wa?'<a class="btn" target="_blank" href="https://wa.me/'+wa+'">💬 WhatsApp</a>':'')+'<a class="btn p" href="'+PANEL+'">'+T.edit+'</a><button class="btn" onclick="closeSheet()">'+T.close+'</button></div>';
   document.getElementById('sbg').style.display='flex';
 }
